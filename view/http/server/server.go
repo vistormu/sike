@@ -18,6 +18,8 @@ import (
 type Config struct {
 	Addr  string
 	Users *service.Users
+	Areas *service.Areas
+	Tasks *service.Tasks
 }
 
 type Server struct {
@@ -38,10 +40,13 @@ func New(cfg Config) (*Server, error) {
 	mux.Handle("GET /static/", noListing(http.StripPrefix("/static/", http.FileServerFS(ui.Static()))))
 	people := handlers.People{R: rd, Users: cfg.Users}
 	mux.Handle("GET /{$}", http.RedirectHandler("/week", http.StatusSeeOther))
-	t := handlers.Tabs{R: rd}
-	for _, name := range []string{"week", "upcoming", "pending", "someday", "settings"} {
+	frame := handlers.Frame{Tasks: cfg.Tasks}
+	t := handlers.Tabs{R: rd, Frame: frame}
+	for _, name := range []string{"week", "upcoming", "someday", "settings"} {
 		mux.Handle("GET /"+name, people.Require(t.Tab(name)))
 	}
+	pending := handlers.Pending{R: rd, Frame: frame, Tasks: cfg.Tasks, Areas: cfg.Areas}
+	mux.Handle("GET /pending", people.Require(http.HandlerFunc(pending.Show)))
 	mux.HandleFunc("GET /who", people.Who)
 	mux.HandleFunc("GET /who/new", people.New)
 	mux.HandleFunc("POST /who/new", people.Create)

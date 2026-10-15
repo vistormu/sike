@@ -5,7 +5,7 @@
     <nav class="hidden w-58 shrink-0 flex-col gap-1 border-r-2 border-border px-4 pt-6 pb-4 md:flex" hx-boost="true">
         <p class="pb-6 pl-3 text-title">sike</p>
         {{- range .Shell.Tabs }}
-        {{ template "components/nav_item" (dict "Href" .Href "Label" .Label "Color" .Color "Active" .Active) }}
+        {{ template "components/nav_item" (dict "Href" .Href "Label" .Label "Color" .Color "Count" .Count "Active" .Active) }}
         {{- end }}
         <a href="/settings" class="mt-auto flex items-center justify-between pr-2 pl-3">
             <span class="flex items-center gap-2"><span class="text-title">{{ .Shell.User.Emoji }}</span><span class="text-body">{{ .Shell.User.Name }}</span></span>

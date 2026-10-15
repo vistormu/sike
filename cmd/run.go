@@ -31,6 +31,8 @@ SIKE_DB the database file (default sike.db), created and migrated on boot.`,
 			srv, err := server.New(server.Config{
 				Addr:  getenv("SIKE_ADDR", ":8090"),
 				Users: service.NewUsers(st),
+				Areas: service.NewAreas(st),
+				Tasks: service.NewTasks(st),
 			})
 			if err != nil {
 				return err

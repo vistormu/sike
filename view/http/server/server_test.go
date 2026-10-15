@@ -12,8 +12,22 @@ import (
 	"sike/domain/service"
 )
 
+// services are the ones testServer's handler runs on, to set up data.
+type services struct {
+	Users *service.Users
+	Areas *service.Areas
+	Tasks *service.Tasks
+}
+
 // testServer is the real server on a fresh in-memory database.
 func testServer(t *testing.T) (http.Handler, *service.Users) {
+	t.Helper()
+	h, svc := testApp(t)
+	return h, svc.Users
+}
+
+// testApp is testServer with every service.
+func testApp(t *testing.T) (http.Handler, services) {
 	t.Helper()
 	db, err := store.OpenMemory()
 	if err != nil {
@@ -23,12 +37,13 @@ func testServer(t *testing.T) (http.Handler, *service.Users) {
 	if _, err := store.Migrate(context.Background(), db); err != nil {
 		t.Fatalf("Migrate: %v", err)
 	}
-	users := service.NewUsers(store.New(db))
-	s, err := New(Config{Users: users})
+	st := store.New(db)
+	svc := services{Users: service.NewUsers(st), Areas: service.NewAreas(st), Tasks: service.NewTasks(st)}
+	s, err := New(Config{Users: svc.Users, Areas: svc.Areas, Tasks: svc.Tasks})
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	return s.http.Handler, users
+	return s.http.Handler, svc
 }
 
 func TestRoutes(t *testing.T) {

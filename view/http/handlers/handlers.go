@@ -4,8 +4,10 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"strconv"
 
 	"sike/domain/model"
+	"sike/domain/service"
 )
 
 // Renderer writes a page through the layout. options add the shell, a toast,
@@ -30,16 +32,43 @@ func WithToast(status int, t Toast) Option {
 }
 
 // WithShell wraps the page in the sidebar (desktop) or tab bar (phone), with
-// tab active. tab is "" on pages that are no tab, like settings.
-func WithShell(u model.User, tab string) Option {
+// tab active. tab is "" on pages that are no tab, like settings. counts are
+// shown next to their tab in the sidebar; a missing or zero count hides.
+func WithShell(u model.User, tab string, counts map[string]int) Option {
 	return func(v *View) {
 		s := &Shell{User: u}
 		for _, t := range tabs {
 			t.Active = t.Name == tab
+			if n := counts[t.Name]; n > 0 {
+				t.Count = strconv.Itoa(n)
+			}
 			s.Tabs = append(s.Tabs, t)
 		}
 		v.Shell = s
 	}
+}
+
+// Frame builds the shell for the person in a request: it knows the counts.
+type Frame struct {
+	Tasks *service.Tasks
+}
+
+// countedTabs: the tabs whose sidebar item shows how many tasks they hold.
+var countedTabs = map[model.When]string{model.Pending: "pending", model.Someday: "someday"}
+
+func (f Frame) Shell(r *http.Request, tab string) (Option, error) {
+	u := UserFrom(r.Context())
+	tasks, err := f.Tasks.List(r.Context(), u.ID)
+	if err != nil {
+		return nil, err
+	}
+	counts := map[string]int{}
+	for _, t := range tasks {
+		if name, ok := countedTabs[t.When]; ok {
+			counts[name]++
+		}
+	}
+	return WithShell(u, tab, counts), nil
 }
 
 // Toast is the one message component: Info, or Error. Action shows Undo.
@@ -57,6 +86,7 @@ type Shell struct {
 
 type Tab struct {
 	Name, Label, Color string
+	Count              string // "" hides it
 	Active             bool
 }
 
