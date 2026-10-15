@@ -23,8 +23,9 @@ type Config struct {
 	Tasks    *service.Tasks
 	Moods    *service.Moods
 	Notifier *service.Notifier
-	Loc      *time.Location   // SIKE_TZ
-	Now      func() time.Time // time.Now, or a stopped clock in tests
+	Ping     func(context.Context) error // the db answers: /healthz
+	Loc      *time.Location              // SIKE_TZ
+	Now      func() time.Time            // time.Now, or a stopped clock in tests
 }
 
 type Server struct {
@@ -74,6 +75,16 @@ func New(cfg Config) (*Server, error) {
 	mux.HandleFunc("POST /who/new", people.Create)
 	mux.HandleFunc("POST /who/{id}", people.Pick)
 	mux.HandleFunc("GET /dev/components", handlers.Dev{R: rd}.Components)
+	// the container's healthcheck (sike health): up, and the db answers
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+		if cfg.Ping != nil {
+			if err := cfg.Ping(r.Context()); err != nil {
+				http.Error(w, "db: "+err.Error(), http.StatusServiceUnavailable)
+				return
+			}
+		}
+		w.Write([]byte("ok\n"))
+	})
 
 	s.http = &http.Server{
 		Addr:              cfg.Addr,

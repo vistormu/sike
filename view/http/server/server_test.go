@@ -63,7 +63,7 @@ func testApp(t *testing.T) (http.Handler, services) {
 	}
 	st := store.New(db)
 	svc := services{Users: service.NewUsers(st), Areas: service.NewAreas(st), Tasks: service.NewTasks(st), Moods: service.NewMoods(st), Sent: &[]string{}}
-	s, err := New(Config{Users: svc.Users, Areas: svc.Areas, Tasks: svc.Tasks, Moods: svc.Moods, Notifier: service.NewNotifier(fakeNtfy{svc.Sent}, st, svc.Users, svc.Tasks, testLoc), Loc: testLoc, Now: testNow})
+	s, err := New(Config{Ping: db.PingContext, Users: svc.Users, Areas: svc.Areas, Tasks: svc.Tasks, Moods: svc.Moods, Notifier: service.NewNotifier(fakeNtfy{svc.Sent}, st, svc.Users, svc.Tasks, testLoc), Loc: testLoc, Now: testNow})
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -84,6 +84,7 @@ func TestRoutes(t *testing.T) {
 		{"/dev/components", 200, "text/html", "sike — components"},
 		{"/static/js/htmx.min.js", 200, "text/javascript", "htmx"},
 		{"/static/css/site.css", 200, "text/css", "--color-bg"},
+		{"/healthz", 200, "text/plain", "ok"},
 		{"/static/manifest.webmanifest", 200, "application/manifest+json", `"display": "standalone"`},
 		{"/static/icons/apple-touch-icon.png", 200, "image/png", ""},
 		{"/static/icons/icon-512.png", 200, "image/png", ""},

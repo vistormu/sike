@@ -11,15 +11,19 @@ import (
 	"sike/adapter/store"
 )
 
+// version is set by the image build (-ldflags "-X sike/cmd.version=v0.1.0").
+var version = "dev"
+
 func Execute() {
 	root := &cobra.Command{
-		Use:   "sike",
-		Short: "the week that repeats — a planner for two",
+		Use:     "sike",
+		Short:   "the week that repeats — a planner for two",
+		Version: version,
 		// errors are printed once, below, without the usage dump
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
-	root.AddCommand(runCmd(), migrateCmd(), opCmd())
+	root.AddCommand(runCmd(), migrateCmd(), healthCmd(), opCmd())
 
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

@@ -12,6 +12,8 @@ static files are embedded (`view/ui/`); htmx is vendored, not loaded from a cdn.
 | ------------ | ----------------------------------------- |
 | `just run`   | build the css, start the server on `localhost:8090` |
 | `just test`  | `go test -race ./...`                     |
+| `just image [version]` | build the image locally (`sike:dev`) |
+| `just release [vX.Y.Z]` | publish a version: checks main is clean and on github, runs `just check`, tags and pushes the tag; no version says the last one |
 | `just lint`  | `gofmt` + `go vet`                        |
 | `just check` | `lint` + `css-check` + `test`, the gate before a commit |
 | `just vendor` | re-download pinned htmx, checked against a second cdn |
@@ -28,12 +30,22 @@ without node; only the css recipes need node + npm (they run `npm ci` themselves
 dev pages: `/dev/components` shows every component variant (compare with figma).
 settings' "Switch person" forgets the chosen person and opens the picker.
 
+## release
+
+`just release v0.1.0` (main committed and pushed): github tests it and publishes the image
+`ghcr.io/vistormu/sike:v0.1.0` (and `:latest`); the homelab pins that version.
+`just image` builds the same image locally (`sike:dev`):
+`docker run --rm -p 8090:8090 -v sike-data:/data sike:dev`. the image runs as
+nonroot (65532), keeps the db in `/data`, and checks itself with `sike health`.
+
 ## cli
 
 | command    | description          |
 | ---------- | -------------------- |
 | `sike run` | start the web server (migrates the db on boot) |
 | `sike migrate` | apply pending migrations, print the version |
+| `sike health` | ask the server on `SIKE_ADDR` whether it is up and its db answers (`/healthz`); exit 1 if not |
+| `sike --version` | the version it was built as (`dev` outside the image) |
 | `sike op user add <name> <emoji>` | add a person (the emoji is one of the 30 animals) |
 | `sike op user list` | list people, oldest first, with their deadline warning |
 | `sike op user edit <id> [--name] [--emoji] [--warn 1h\|1d\|2d] [--topic]` | change a person; what is not given stays |

@@ -18,6 +18,33 @@ lint:
     if [ -n "$unformatted" ]; then echo "gofmt needed (run: gofmt -w <file>):"; echo "$unformatted"; exit 1; fi
     go vet ./...
 
+# the image the homelab runs, built here to try it (github publishes it on a
+# v* tag). run it: docker run --rm -p 8090:8090 -v sike-data:/data sike:dev
+image version="dev":
+    docker build --build-arg VERSION={{version}} -t sike:{{version}} .
+
+# tags main and pushes the tag; github tests it and publishes
+# ghcr.io/vistormu/sike:<version> (.github/workflows/image.yml), which the
+# homelab pins. with no version, it says the last one.
+# publish a version on github: just release vX.Y.Z
+release version="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    v="{{version}}"
+    last=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo none)
+    [ -n "$v" ] || { echo "last release: $last. release one with: just release vX.Y.Z"; exit 0; }
+    [[ "$v" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "a version is vX.Y.Z, like v0.1.0 (got $v)"; exit 1; }
+    [ "$(git branch --show-current)" = main ] || { echo "release from main"; exit 1; }
+    [ -z "$(git status --porcelain)" ] || { echo "the tree has changes: commit them first"; exit 1; }
+    git fetch -q origin main --tags
+    [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo "main is not on github: git push first"; exit 1; }
+    ! git rev-parse -q --verify "refs/tags/$v" >/dev/null || { echo "$v exists (last release: $last)"; exit 1; }
+    just check
+    git tag -a "$v" -m "sike $v"
+    git push origin "$v"
+    echo "$v is on its way: https://github.com/vistormu/sike/actions"
+    echo "then: ghcr.io/vistormu/sike:$v"
+
 # re-download pinned vendor files, verifying each against a second cdn
 vendor:
     curl -sf https://unpkg.com/htmx.org@{{htmx-version}}/dist/htmx.min.js -o view/ui/static/js/htmx.min.js

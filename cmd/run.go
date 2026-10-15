@@ -43,6 +43,7 @@ SIKE_TZ the timezone times are in (default Europe/Madrid).`,
 				Tasks:    tasks,
 				Moods:    service.NewMoods(st),
 				Notifier: notifier,
+				Ping:     db.PingContext,
 				Loc:      loc,
 				Now:      time.Now,
 			})
