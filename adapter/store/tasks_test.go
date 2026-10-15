@@ -19,7 +19,7 @@ func taskNames(ts []model.Task) []string {
 
 func newTask(t *testing.T, s *Store, user int64, name, color string, when model.When) model.Task {
 	t.Helper()
-	task, err := s.CreateTask(context.Background(), model.Task{UserID: user, Name: name, Color: color, When: when}, nil)
+	task, err := s.CreateTask(context.Background(), model.Task{UserID: user, Name: name, Color: color, When: when})
 	if err != nil {
 		t.Fatalf("CreateTask %s: %v", name, err)
 	}
@@ -105,10 +105,10 @@ func TestTaskNeedsAnAreaAndAWhen(t *testing.T) {
 	ctx := context.Background()
 	s := New(testDB(t))
 	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"}, model.DefaultAreas)
-	if _, err := s.CreateTask(ctx, model.Task{UserID: u.ID, Name: "x", Color: "beige", When: model.Pending}, nil); err == nil {
+	if _, err := s.CreateTask(ctx, model.Task{UserID: u.ID, Name: "x", Color: "beige", When: model.Pending}); err == nil {
 		t.Error("a task in no area was stored")
 	}
-	if _, err := s.CreateTask(ctx, model.Task{UserID: u.ID, Name: "x", Color: "sky", When: "later"}, nil); err == nil {
+	if _, err := s.CreateTask(ctx, model.Task{UserID: u.ID, Name: "x", Color: "sky", When: "later"}); err == nil {
 		t.Error("a task with an unknown when was stored")
 	}
 }
@@ -122,12 +122,12 @@ func TestUpdateTask(t *testing.T) {
 	newTask(t, s, u.ID, "wish", "sky", model.Someday)
 
 	// same when: renamed and recolored, its place kept
-	got, err := s.UpdateTask(ctx, model.Task{ID: a.ID, UserID: u.ID, Name: "a2", Color: "sky", When: model.Pending}, nil)
+	got, err := s.UpdateTask(ctx, model.Task{ID: a.ID, UserID: u.ID, Name: "a2", Color: "sky", When: model.Pending})
 	if err != nil || got.Name != "a2" || got.Position != a.Position {
 		t.Fatalf("update in place: %+v, %v (position was %d)", got, err, a.Position)
 	}
 	// a new when: on top there
-	if _, err := s.UpdateTask(ctx, model.Task{ID: a.ID, UserID: u.ID, Name: "a2", Color: "pink", When: model.Someday}, nil); err != nil {
+	if _, err := s.UpdateTask(ctx, model.Task{ID: a.ID, UserID: u.ID, Name: "a2", Color: "pink", When: model.Someday}); err != nil {
 		t.Fatal(err)
 	}
 	all, _ := s.ListTasks(ctx, u.ID)
@@ -139,7 +139,7 @@ func TestUpdateTask(t *testing.T) {
 	}
 	// someone else's task: not found
 	them, _ := s.CreateUser(ctx, model.User{Name: "Partner", Emoji: "🐼"}, model.DefaultAreas)
-	if _, err := s.UpdateTask(ctx, model.Task{ID: a.ID, UserID: them.ID, Name: "x", Color: "sky", When: model.Pending}, nil); !errors.Is(err, model.ErrNotFound) {
+	if _, err := s.UpdateTask(ctx, model.Task{ID: a.ID, UserID: them.ID, Name: "x", Color: "sky", When: model.Pending}); !errors.Is(err, model.ErrNotFound) {
 		t.Errorf("update another's task: err = %v, want ErrNotFound", err)
 	}
 }

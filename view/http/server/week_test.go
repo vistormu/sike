@@ -21,7 +21,7 @@ var (
 func weekly(t *testing.T, svc services, user int64, name, color string, days model.Days, start, end int) {
 	t.Helper()
 	p := model.Placement{Days: days, Start: clock.Time(start), End: clock.Time(end)}
-	if _, err := svc.Tasks.Add(context.Background(), user, name, color, model.Weekly, []model.Placement{p}); err != nil {
+	if _, err := svc.Tasks.Add(context.Background(), model.Task{UserID: user, Name: name, Color: color, When: model.Weekly, Places: []model.Placement{p}}); err != nil {
 		t.Fatal(err)
 	}
 }

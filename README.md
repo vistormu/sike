@@ -39,16 +39,16 @@ dev pages: `/dev/components` shows every component variant (compare with figma),
 | `sike op user rm <id> [-y]` | delete a person and everything theirs (asks first) |
 | `sike op area list <user-id>` | a person's seven areas (color, name) |
 | `sike op area rename <user-id> <color> <name>` | rename one of them |
-| `sike op task add <user-id> <name> --area <area> [--when …] [--at …]` | add a task (area: color or name; when: pending, the default, someday, or weekly with one `--at "mon,wed 18:00-19:30"` per time) |
+| `sike op task add <user-id> <name> --area <area> [--when …] [--at …] [--date …] [--notify]` | add a task (area: color or name; when: pending, the default, someday, weekly with one `--at "mon,wed 18:00-19:30"` per time, or date with `--date "15/10 11:00-12:00"`, `"15/10"`, `"16/10..18/10"` or `"due 20/10 14:00"`) |
 | `sike op task list <user-id>` | a person's tasks, in tab order |
-| `sike op task edit <user-id> <task-id> [--name] [--area] [--when] [--at …]` | change a task; a new when puts it on top there; `--at` replaces the weekly times |
+| `sike op task edit <user-id> <task-id> [--name] [--area] [--when] [--at …] [--date …] [--notify]` | change a task; a new when puts it on top there; `--at` replaces the weekly times, `--date` the dates |
 | `sike op task rm <user-id> <task-id>` | delete a task: done |
 | `sike op task restore <user-id> <task-id>` | undo a delete (only a person's last one) |
 | `sike op task move <user-id> <task-id> <when>` | move a task to pending or someday, on top |
 | `sike op placement list <user-id> <task-id>` | a weekly task's times |
 | `sike op placement add <user-id> <task-id> <days> <start-end> [--notify-start] [--notify-end]` | add a time: `mon,wed 18:00-19:30`, `mon-fri 09:00-17:00` |
 | `sike op placement rm <user-id> <placement-id>` | remove a time (not a task's last one) |
-| `sike op week show <user-id> [--date YYYY-MM-DD]` | a person's week (today's by default): days, hours, what repeats |
+| `sike op week show <user-id> [--date YYYY-MM-DD]` | a person's week (today's by default): days, hours, what repeats, what is dated |
 
 ## env
 

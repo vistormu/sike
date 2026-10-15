@@ -160,3 +160,39 @@ func TestAtAcrossDST(t *testing.T) {
 		t.Errorf("24:00 = %s, want the 16th at 00:00", got)
 	}
 }
+
+func TestReadDate(t *testing.T) {
+	today := NewDate(2026, 10, 15) // a thursday
+	for in, want := range map[string]string{
+		"2026-10-15": "2026-10-15", "15/10": "2026-10-15", "15/10/2026": "2026-10-15", "15.10.26": "2026-10-15",
+		"15-10-2026": "2026-10-15", "Oct 15": "2026-10-15", "15 oct": "2026-10-15", "15 October 2027": "2027-10-15",
+		"Thu, Oct 15": "2026-10-15", "thu oct 15 2026": "2026-10-15", " 3/1 ": "2027-01-03", // jan 3: nearer next year
+		"20/3": "2027-03-20", "20/4": "2026-04-20", // the nearest one: march is 5 months away, april 6 back
+		"29/2/2028": "2028-02-29",
+	} {
+		got, err := ReadDate(in, today)
+		if err != nil || got.String() != want {
+			t.Errorf("ReadDate(%q) = %v, %v; want %s", in, got, err, want)
+		}
+	}
+	for _, bad := range []string{"", "15", "32/10", "15/13", "31/2/2026", "29/2/2027", "oct", "tomorrow", "15/10/2026/1", "15 oct 2026 3"} {
+		if got, err := ReadDate(bad, today); err == nil {
+			t.Errorf("ReadDate(%q) = %v, want an error", bad, got)
+		}
+	}
+	// Short reads back to the same day, with the year only when it is far
+	for _, s := range []string{"2026-10-15", "2026-04-16", "2027-04-14", "2027-10-15", "2025-01-01"} {
+		day, _ := ParseDate(s)
+		short := day.Short(today)
+		back, err := ReadDate(short, today)
+		if err != nil || back != day {
+			t.Errorf("%s shows as %q, reads back as %v (%v)", s, short, back, err)
+		}
+	}
+	if got := NewDate(2026, 10, 15).Short(today); got != "Thu, Oct 15" {
+		t.Errorf("Short = %q, want Thu, Oct 15", got)
+	}
+	if got := NewDate(2027, 10, 15).Short(today); got != "Fri, Oct 15, 2027" {
+		t.Errorf("Short = %q, want Fri, Oct 15, 2027", got)
+	}
+}

@@ -22,7 +22,7 @@ func TestSomedayTilesByArea(t *testing.T) {
 		{"Visit Lisbon", "pink", "someday"},
 		{"Fix bike", "mint", "pending"}, // not a wish
 	} {
-		if _, err := svc.Tasks.Add(ctx, you.ID, x[0], x[1], model.When(x[2]), nil); err != nil {
+		if _, err := svc.Tasks.Add(ctx, model.Task{UserID: you.ID, Name: x[0], Color: x[1], When: model.When(x[2])}); err != nil {
 			t.Fatal(err)
 		}
 	}

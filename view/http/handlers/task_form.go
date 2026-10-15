@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"sike/domain/clock"
@@ -18,6 +19,8 @@ import (
 type TaskForm struct {
 	Tasks *service.Tasks
 	Areas *service.Areas
+	Loc   *time.Location // dates are read and shown relative to today here
+	Now   func() time.Time
 }
 
 type taskForm struct {
@@ -29,6 +32,68 @@ type taskForm struct {
 	Whens         []whenOption
 	Places        []placeRow // the weekly schedule, one box per time
 	Blank         placeRow   // the box "+ Add time" copies (app.js)
+	Dates         dateFields // on a date
+}
+
+// dateFields is the Date box as typed or shown: dates as "Thu, Oct 15",
+// times as "11:00". no start date: a deadline.
+type dateFields struct {
+	From, Start, To, End string
+	AllDay, Notify       bool
+}
+
+// blankDates: nothing yet, notify at start on (as figma draws it).
+var blankDates = dateFields{Notify: true}
+
+func (h TaskForm) today() clock.Date { return clock.Today(h.Now(), h.Loc) }
+
+// storedDates shows a task's dates; a task with none gets a blank box.
+func (h TaskForm) storedDates(d *model.Dates) dateFields {
+	if d == nil {
+		return blankDates
+	}
+	today := h.today()
+	return dateFields{From: d.From.Short(today), Start: d.Start.String(), To: d.To.Short(today), End: d.End.String(),
+		AllDay: d.AllDay(), Notify: d.Notify}
+}
+
+func typedDates(r *http.Request) dateFields {
+	return dateFields{From: r.FormValue("date_from"), Start: r.FormValue("time_from"), To: r.FormValue("date_to"),
+		End: r.FormValue("time_to"), AllDay: r.FormValue("all_day") != "", Notify: r.FormValue("notify") != ""}
+}
+
+// dates reads the Date box. empty is none: no start date is a deadline, no
+// times all day; "All day" drops what was typed in the times.
+func (h TaskForm) dates(f dateFields) (*model.Dates, error) {
+	today := h.today()
+	d := model.Dates{Start: clock.NoTime, End: clock.NoTime, Notify: f.Notify}
+	var err error
+	for _, x := range []struct {
+		in  string
+		out *clock.Date
+	}{{f.From, &d.From}, {f.To, &d.To}} {
+		if strings.TrimSpace(x.in) == "" {
+			continue
+		}
+		if *x.out, err = clock.ReadDate(x.in, today); err != nil {
+			return nil, model.Invalid("Dates are like 15/10 or 15/10/2026")
+		}
+	}
+	if f.AllDay {
+		return &d, nil
+	}
+	for _, x := range []struct {
+		in  string
+		out *clock.Time
+	}{{f.Start, &d.Start}, {f.End, &d.End}} {
+		if strings.TrimSpace(x.in) == "" {
+			continue
+		}
+		if *x.out, err = clock.ReadTime(x.in); err != nil {
+			return nil, model.Invalid("Times are HH:MM, 24h")
+		}
+	}
+	return &d, nil
 }
 
 type whenOption struct {
@@ -140,7 +205,7 @@ func (h TaskForm) New(tab string, page Page) http.HandlerFunc {
 				preset = when
 			}
 		}
-		f, err := h.form(r, tab, "new", "", "", preset, []placeRow{blankRow("0")})
+		f, err := h.form(r, tab, "new", model.Task{When: preset}, []placeRow{blankRow("0")}, blankDates)
 		if err != nil {
 			serverError(w, err)
 			return
@@ -152,10 +217,10 @@ func (h TaskForm) New(tab string, page Page) http.HandlerFunc {
 // Create adds the task and opens the tab it lands in.
 func (h TaskForm) Create(tab string, page Page) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		when, places, err := h.typed(r)
+		t, err := h.typed(r)
 		if err == nil {
-			var t model.Task
-			t, err = h.Tasks.Add(r.Context(), UserFrom(r.Context()).ID, r.FormValue("name"), r.FormValue("area"), when, places)
+			t.UserID = UserFrom(r.Context()).ID
+			t, err = h.Tasks.Add(r.Context(), t)
 			if err == nil {
 				http.Redirect(w, r, "/"+tabOf[t.When], http.StatusSeeOther)
 				return
@@ -187,12 +252,7 @@ func (h TaskForm) Edit(tab string, page Page) http.HandlerFunc {
 			serverError(w, err)
 			return
 		}
-		places, err := h.Tasks.Placements(r.Context(), u.ID, id)
-		if err != nil {
-			serverError(w, err)
-			return
-		}
-		f, err := h.form(r, tab, r.PathValue("id"), t.Name, t.Color, t.When, storedRows(places))
+		f, err := h.form(r, tab, r.PathValue("id"), t, storedRows(t.Places), h.storedDates(t.Date))
 		if err != nil {
 			serverError(w, err)
 			return
@@ -210,10 +270,10 @@ func (h TaskForm) Update(tab string, page Page) http.HandlerFunc {
 			http.NotFound(w, r)
 			return
 		}
-		when, places, err := h.typed(r)
-		var t model.Task
+		t, err := h.typed(r)
 		if err == nil {
-			t, err = h.Tasks.Edit(r.Context(), UserFrom(r.Context()).ID, id, r.FormValue("name"), r.FormValue("area"), when, places)
+			t.ID, t.UserID = id, UserFrom(r.Context()).ID
+			t, err = h.Tasks.Edit(r.Context(), t)
 		}
 		switch {
 		case errors.Is(err, model.ErrInvalid):
@@ -228,15 +288,19 @@ func (h TaskForm) Update(tab string, page Page) http.HandlerFunc {
 	}
 }
 
-// typed reads When and, for a weekly task, its schedule. another when ignores
-// the schedule, whatever was left in it.
-func (h TaskForm) typed(r *http.Request) (model.When, []model.Placement, error) {
-	when := model.When(r.FormValue("when"))
-	if when != model.Weekly {
-		return when, nil, nil
+// typed reads the task as the form sent it: for a weekly task its schedule,
+// for a dated one its dates. another when ignores those boxes, whatever was
+// left in them.
+func (h TaskForm) typed(r *http.Request) (model.Task, error) {
+	t := model.Task{Name: r.FormValue("name"), Color: r.FormValue("area"), When: model.When(r.FormValue("when"))}
+	var err error
+	switch t.When {
+	case model.Weekly:
+		t.Places, err = placements(typedRows(r))
+	case model.Dated:
+		t.Date, err = h.dates(typedDates(r))
 	}
-	places, err := placements(typedRows(r))
-	return when, places, err
+	return t, err
 }
 
 // Delete deletes the task (done) and opens the tab with the undo toast.
@@ -284,7 +348,8 @@ func (h TaskForm) Restore(tab string, page Page) http.HandlerFunc {
 
 // retry shows the form again as it was typed, with why it failed.
 func (h TaskForm) retry(w http.ResponseWriter, r *http.Request, tab, path string, page Page, reason error) {
-	f, err := h.form(r, tab, path, r.FormValue("name"), r.FormValue("area"), model.When(r.FormValue("when")), typedRows(r))
+	typed := model.Task{Name: r.FormValue("name"), Color: r.FormValue("area"), When: model.When(r.FormValue("when"))}
+	f, err := h.form(r, tab, path, typed, typedRows(r), typedDates(r))
 	if err != nil {
 		serverError(w, err)
 		return
@@ -292,14 +357,15 @@ func (h TaskForm) retry(w http.ResponseWriter, r *http.Request, tab, path string
 	page(w, r, WithForm(f), WithToast(http.StatusUnprocessableEntity, Toast{Message: reason.Error(), Error: true}))
 }
 
-// form posts to /{tab}/{path}: "new", or the task's id.
-func (h TaskForm) form(r *http.Request, tab, path, name, color string, when model.When, rows []placeRow) (taskForm, error) {
+// form posts to /{tab}/{path}: "new", or the task's id. t gives the name,
+// area and when; the boxes come as shown or typed.
+func (h TaskForm) form(r *http.Request, tab, path string, t model.Task, rows []placeRow, dates dateFields) (taskForm, error) {
 	areas, err := h.Areas.List(r.Context(), UserFrom(r.Context()).ID)
 	if err != nil {
 		return taskForm{}, err
 	}
-	f := taskForm{Action: "/" + tab + "/" + path, Close: "/" + tab, Name: name, Color: color, When: when,
-		Areas: areas, Places: rows, Blank: blankRow("__i__")}
+	f := taskForm{Action: "/" + tab + "/" + path, Close: "/" + tab, Name: t.Name, Color: t.Color, When: t.When,
+		Areas: areas, Places: rows, Blank: blankRow("__i__"), Dates: dates}
 	if path != "new" {
 		f.Delete = f.Action + "/delete"
 	}

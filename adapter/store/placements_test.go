@@ -17,7 +17,7 @@ func TestPlacements(t *testing.T) {
 
 	gym := model.Placement{Days: model.DaysOf(time.Wednesday, time.Saturday), Start: 18 * 60, End: 19*60 + 30, NotifyStart: true}
 	early := model.Placement{Days: model.DaysOf(time.Monday), Start: 7 * 60, End: 8 * 60, NotifyEnd: true}
-	task, err := s.CreateTask(ctx, model.Task{UserID: u.ID, Name: "Gym", Color: "apricot", When: model.Weekly}, []model.Placement{gym, early})
+	task, err := s.CreateTask(ctx, model.Task{UserID: u.ID, Name: "Gym", Color: "apricot", When: model.Weekly, Places: []model.Placement{gym, early}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestPlacements(t *testing.T) {
 	}
 
 	// a pending task takes none
-	pend, _ := s.CreateTask(ctx, model.Task{UserID: u.ID, Name: "Fix bike", Color: "mint", When: model.Pending}, nil)
+	pend, _ := s.CreateTask(ctx, model.Task{UserID: u.ID, Name: "Fix bike", Color: "mint", When: model.Pending})
 	if _, err := s.AddPlacement(ctx, u.ID, model.Placement{TaskID: pend.ID, Days: 1, Start: 0, End: 60}); !errors.Is(err, model.ErrNotFound) {
 		t.Errorf("place a pending task: err = %v, want ErrNotFound", err)
 	}
@@ -95,10 +95,10 @@ func TestUpdateReplacesPlacements(t *testing.T) {
 	s := New(testDB(t))
 	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"}, model.DefaultAreas)
 	p := model.Placement{Days: model.DaysOf(time.Monday), Start: 9 * 60, End: 17 * 60}
-	task, _ := s.CreateTask(ctx, model.Task{UserID: u.ID, Name: "Work", Color: "sky", When: model.Weekly}, []model.Placement{p, p})
+	task, _ := s.CreateTask(ctx, model.Task{UserID: u.ID, Name: "Work", Color: "sky", When: model.Weekly, Places: []model.Placement{p, p}})
 
 	q := model.Placement{Days: model.DaysOf(time.Friday), Start: 9 * 60, End: 14 * 60}
-	if _, err := s.UpdateTask(ctx, model.Task{ID: task.ID, UserID: u.ID, Name: "Work", Color: "sky", When: model.Weekly}, []model.Placement{q}); err != nil {
+	if _, err := s.UpdateTask(ctx, model.Task{ID: task.ID, UserID: u.ID, Name: "Work", Color: "sky", When: model.Weekly, Places: []model.Placement{q}}); err != nil {
 		t.Fatal(err)
 	}
 	if got, _ := s.TaskPlacements(ctx, u.ID, task.ID); len(got) != 1 || got[0].End != q.End {

@@ -6,6 +6,8 @@ package clock
 
 import (
 	"fmt"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -15,6 +17,9 @@ import (
 type Time int
 
 const Midnight Time = 24 * 60
+
+// NoTime is a time not given: an all-day day, a deadline with no hour.
+const NoTime Time = -1
 
 // ParseTime reads "HH:MM", 24h.
 func ParseTime(s string) (Time, error) {
@@ -60,7 +65,13 @@ func ReadTime(s string) (Time, error) {
 func (t Time) Hour() int   { return int(t) / 60 }
 func (t Time) Minute() int { return int(t) % 60 }
 
-func (t Time) String() string { return fmt.Sprintf("%02d:%02d", t.Hour(), t.Minute()) }
+// String is "HH:MM"; NoTime is "".
+func (t Time) String() string {
+	if t == NoTime {
+		return ""
+	}
+	return fmt.Sprintf("%02d:%02d", t.Hour(), t.Minute())
+}
 
 // Date is a day on the calendar, in no location. comparable with ==.
 type Date struct {
@@ -92,7 +103,105 @@ func ParseDate(s string) (Date, error) {
 	return DateOf(t), nil
 }
 
-func (d Date) String() string { return d.utc().Format(time.DateOnly) }
+// String is "2006-01-02"; the zero Date is "".
+func (d Date) String() string {
+	if d.IsZero() {
+		return ""
+	}
+	return d.utc().Format(time.DateOnly)
+}
+
+// IsZero: no date (a deadline has no start).
+func (d Date) IsZero() bool { return d == Date{} }
+
+// days is d's number of days since 1970-01-01.
+func (d Date) days() int { return int(d.utc().Unix() / 86400) }
+
+// near is how far from today a date may be and still be written without its
+// year: about six months either way.
+const near = 182
+
+// Short is d as the form shows it: "Thu, Oct 15", with the year when d is
+// more than about six months from today ("Thu, Oct 15, 2027"). ReadDate reads
+// it back to the same day.
+func (d Date) Short(today Date) string {
+	if d.IsZero() {
+		return ""
+	}
+	s := d.utc().Format("Mon, Jan 2")
+	if abs(d.days()-today.days()) > near {
+		s += d.utc().Format(", 2006")
+	}
+	return s
+}
+
+func abs(n int) int { return max(n, -n) }
+
+var months = []string{"jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"}
+
+// ReadDate reads a date as people type it, day first: "15/10", "15/10/2026",
+// "15.10.26", "2026-10-15", "Oct 15", "15 oct 2026", "Thu, Oct 15". with no
+// year, it is the one nearest today (Short leaves out only such years).
+func ReadDate(s string, today Date) (Date, error) {
+	bad := fmt.Errorf("date %q: want 15/10 or 15/10/2026", s)
+	if d, err := ParseDate(strings.TrimSpace(s)); err == nil {
+		return d, nil
+	}
+	// words and numbers, whatever separates them; a weekday name is skipped
+	f := strings.FieldsFunc(strings.ToLower(s), func(r rune) bool {
+		return r == '/' || r == '.' || r == '-' || r == ',' || r == ' '
+	})
+	var nums []int
+	month := 0
+	for _, w := range f {
+		if i := slices.IndexFunc(months, func(m string) bool { return strings.HasPrefix(w, m) }); len(w) >= 3 && i >= 0 {
+			month = i + 1
+			continue
+		}
+		if len(w) >= 3 && slices.ContainsFunc([]string{"mon", "tue", "wed", "thu", "fri", "sat", "sun"}, func(d string) bool { return strings.HasPrefix(w, d) }) {
+			continue
+		}
+		n, err := strconv.Atoi(w)
+		if err != nil {
+			return Date{}, bad
+		}
+		nums = append(nums, n)
+	}
+	var day, year int
+	switch {
+	case month > 0 && len(nums) == 1: // oct 15
+		day = nums[0]
+	case month > 0 && len(nums) == 2: // oct 15 2026
+		day, year = nums[0], nums[1]
+	case month == 0 && len(nums) == 2: // 15/10
+		day, month = nums[0], nums[1]
+	case month == 0 && len(nums) == 3: // 15/10/2026
+		day, month, year = nums[0], nums[1], nums[2]
+	default:
+		return Date{}, bad
+	}
+	if year > 0 && year < 100 {
+		year += 2000
+	}
+	if day < 1 || month < 1 || month > 12 {
+		return Date{}, bad
+	}
+	if year == 0 { // the nearest such date: this year's, or the next or last
+		best := Date{}
+		for y := today.Year - 1; y <= today.Year+1; y++ {
+			c := Date{y, time.Month(month), day}
+			if best.IsZero() || abs(c.days()-today.days()) < abs(best.days()-today.days()) {
+				best = c
+			}
+		}
+		year = best.Year
+	}
+	d := Date{year, time.Month(month), day}
+	if NewDate(year, time.Month(month), day) != d { // 31/2
+		return Date{}, bad
+	}
+	return d, nil
+}
 
 // utc is the date's midnight in UTC: arithmetic with no dst in it.
 func (d Date) utc() time.Time { return time.Date(d.Year, d.Month, d.Day, 0, 0, 0, 0, time.UTC) }

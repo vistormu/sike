@@ -16,13 +16,15 @@ type fakeTasks struct {
 	moved   map[int64]model.When
 	updated []model.Task
 	places  [][]model.Placement // what each create or update stored
-	of      []model.Placement   // a task's placements, for Unplace
+	dates   []*model.Dates
+	of      []model.Placement // a task's placements, for Unplace
 	removed []int64
 }
 
-func (f *fakeTasks) CreateTask(_ context.Context, t model.Task, places []model.Placement) (model.Task, error) {
+func (f *fakeTasks) CreateTask(_ context.Context, t model.Task) (model.Task, error) {
 	f.created = append(f.created, t)
-	f.places = append(f.places, places)
+	f.places = append(f.places, t.Places)
+	f.dates = append(f.dates, t.Date)
 	return t, nil
 }
 func (f *fakeTasks) ListTasks(context.Context, int64) ([]model.Task, error) { return nil, nil }
@@ -34,9 +36,10 @@ func (f *fakeTasks) GetDeletedTask(context.Context, int64, int64) (model.Task, e
 	return model.Task{}, nil
 }
 func (f *fakeTasks) RestoreTask(context.Context, int64, int64) error { return nil }
-func (f *fakeTasks) UpdateTask(_ context.Context, t model.Task, places []model.Placement) (model.Task, error) {
+func (f *fakeTasks) UpdateTask(_ context.Context, t model.Task) (model.Task, error) {
 	f.updated = append(f.updated, t)
-	f.places = append(f.places, places)
+	f.places = append(f.places, t.Places)
+	f.dates = append(f.dates, t.Date)
 	return t, nil
 }
 func (f *fakeTasks) ListPlacements(context.Context, int64) ([]model.Placement, error) {
@@ -77,14 +80,14 @@ func TestAddTask(t *testing.T) {
 		{strings.Repeat("a", 81), "sky", model.Pending, "longer than 80"},
 		{"   ", "sky", model.Pending, "needs a name"},
 		{"Fix bike", "beige", model.Pending, "Pick an area"},
-		{"Fix bike", "sky", model.Weekly, "at least one day"},              // no placements
-		{"Fix bike", "sky", model.Dated, "every week, pending or someday"}, // m18
-		{"Fix bike", "sky", "later", "every week, pending or someday"},
+		{"Fix bike", "sky", model.Weekly, "at least one day"}, // no placements
+		{"Fix bike", "sky", model.Dated, "Pick a date"},       // no dates
+		{"Fix bike", "sky", "later", "every week, on a date, pending or someday"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name+"/"+string(tt.when), func(t *testing.T) {
 			f := &fakeTasks{}
-			task, err := NewTasks(f).Add(context.Background(), 1, tt.name, tt.color, tt.when, nil)
+			task, err := NewTasks(f).Add(context.Background(), model.Task{UserID: 1, Name: tt.name, Color: tt.color, When: tt.when})
 			if tt.err == "" {
 				if err != nil || task.Name != strings.TrimSpace(tt.name) || len(f.created) != 1 {
 					t.Errorf("got %+v, %v", task, err)
@@ -112,10 +115,10 @@ func TestMoveTask(t *testing.T) {
 func TestTaskWhens(t *testing.T) {
 	s := NewTasks(&fakeTasks{})
 	got := s.Whens()
-	if len(got) != 3 || got[0] != model.Weekly || got[1] != model.Pending || got[2] != model.Someday {
-		t.Fatalf("Whens = %v, want [weekly pending someday]", got)
+	if len(got) != 4 || got[0] != model.Weekly || got[1] != model.Dated || got[2] != model.Pending || got[3] != model.Someday {
+		t.Fatalf("Whens = %v, want [weekly date pending someday]", got)
 	}
-	got[0] = model.Dated
+	got[0] = model.Pending
 	if s.Whens()[0] != model.Weekly {
 		t.Error("Whens hands out the service's own slice")
 	}
@@ -124,7 +127,7 @@ func TestTaskWhens(t *testing.T) {
 func TestEditTask(t *testing.T) {
 	f := &fakeTasks{}
 	s := NewTasks(f)
-	got, err := s.Edit(context.Background(), 1, 7, "  Fix bike ", "mint", model.Someday, nil)
+	got, err := s.Edit(context.Background(), model.Task{ID: 7, UserID: 1, Name: "  Fix bike ", Color: "mint", When: model.Someday})
 	if err != nil || got.ID != 7 || got.UserID != 1 || got.Name != "Fix bike" || got.Color != "mint" || got.When != model.Someday {
 		t.Errorf("edit: %+v, %v", got, err)
 	}
@@ -133,7 +136,7 @@ func TestEditTask(t *testing.T) {
 		name, color string
 		when        model.When
 	}{{"", "mint", model.Pending}, {"x", "beige", model.Pending}, {"x", "mint", model.Weekly}} {
-		if _, err := s.Edit(context.Background(), 1, 7, bad.name, bad.color, bad.when, nil); !errors.Is(err, model.ErrInvalid) {
+		if _, err := s.Edit(context.Background(), model.Task{ID: 7, UserID: 1, Name: bad.name, Color: bad.color, When: bad.when}); !errors.Is(err, model.ErrInvalid) {
 			t.Errorf("edit %+v: err = %v, want invalid", bad, err)
 		}
 	}
@@ -166,7 +169,7 @@ func TestWeeklyPlacements(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			f := &fakeTasks{}
-			_, err := NewTasks(f).Add(context.Background(), 1, "Gym", "apricot", model.Weekly, tt.places)
+			_, err := NewTasks(f).Add(context.Background(), model.Task{UserID: 1, Name: "Gym", Color: "apricot", When: model.Weekly, Places: tt.places})
 			if tt.err == "" {
 				if err != nil || len(f.places) != 1 || len(f.places[0]) != len(tt.places) {
 					t.Errorf("err = %v, stored %v", err, f.places)
@@ -181,7 +184,7 @@ func TestWeeklyPlacements(t *testing.T) {
 
 	// any other when drops the placements the form still sent
 	f := &fakeTasks{}
-	if _, err := NewTasks(f).Edit(context.Background(), 1, 7, "Gym", "apricot", model.Pending, []model.Placement{ok}); err != nil || f.places[0] != nil {
+	if _, err := NewTasks(f).Edit(context.Background(), model.Task{ID: 7, UserID: 1, Name: "Gym", Color: "apricot", When: model.Pending, Places: []model.Placement{ok}}); err != nil || f.places[0] != nil {
 		t.Errorf("edit to pending: %v, stored %v placements, want none", err, f.places)
 	}
 	// weekly is not a move: it needs times
@@ -202,5 +205,59 @@ func TestUnplaceKeepsOne(t *testing.T) {
 	}
 	if _, err := s.Place(context.Background(), 1, model.Placement{TaskID: 7, Days: 0, Start: 60, End: 120}); !errors.Is(err, model.ErrInvalid) {
 		t.Errorf("place with no days: err = %v, want invalid", err)
+	}
+}
+
+func TestDatedTasks(t *testing.T) {
+	d := func(s string) clock.Date {
+		x, err := clock.ParseDate(s)
+		if err != nil {
+			panic(err)
+		}
+		return x
+	}
+	no := clock.NoTime
+	tests := []struct {
+		name string
+		in   *model.Dates
+		want string // "from to start-end", or the error
+	}{
+		{"the dentist", &model.Dates{From: d("2026-10-15"), To: d("2026-10-15"), Start: 11 * 60, End: 12 * 60}, "2026-10-15 2026-10-15 11:00-12:00"},
+		{"only a start: one day", &model.Dates{From: d("2026-10-15"), Start: no, End: no}, "2026-10-15 2026-10-15 -"},
+		{"a deadline", &model.Dates{To: d("2026-10-20"), Start: no, End: no}, " 2026-10-20 -"},
+		{"a deadline at an hour", &model.Dates{To: d("2026-10-20"), Start: 9 * 60, End: 14 * 60}, " 2026-10-20 -14:00"},
+		{"a stretch", &model.Dates{From: d("2026-10-16"), To: d("2026-10-18"), Start: no, End: no}, "2026-10-16 2026-10-18 -"},
+		{"a stretch with hours", &model.Dates{From: d("2026-10-16"), To: d("2026-10-18"), Start: 18 * 60, End: 9 * 60}, "2026-10-16 2026-10-18 18:00-09:00"},
+		{"until midnight", &model.Dates{From: d("2026-10-15"), To: d("2026-10-15"), Start: 23 * 60, End: clock.Midnight}, "2026-10-15 2026-10-15 23:00-24:00"},
+		{"none", nil, "Pick a date"},
+		{"no dates", &model.Dates{Start: no, End: no}, "Pick a date"},
+		{"ends before it starts", &model.Dates{From: d("2026-10-16"), To: d("2026-10-15"), Start: no, End: no}, "The end is before the start"},
+		{"the hour before", &model.Dates{From: d("2026-10-15"), To: d("2026-10-15"), Start: 12 * 60, End: 11 * 60}, "The end is before the start"},
+		{"one time only", &model.Dates{From: d("2026-10-15"), To: d("2026-10-15"), Start: 11 * 60, End: no}, "A time needs a start and an end"},
+		{"past midnight", &model.Dates{From: d("2026-10-15"), To: d("2026-10-15"), Start: 23 * 60, End: clock.Midnight + 30}, "00:00 to 24:00"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := &fakeTasks{}
+			_, err := NewTasks(f).Add(context.Background(), model.Task{UserID: 1, Name: "Dentist", Color: "coral", When: model.Dated, Date: tt.in})
+			if err != nil {
+				if !errors.Is(err, model.ErrInvalid) || !strings.Contains(err.Error(), tt.want) {
+					t.Errorf("err = %v, want %q", err, tt.want)
+				}
+				return
+			}
+			got := f.dates[0]
+			if s := got.From.String() + " " + got.To.String() + " " + got.Start.String() + "-" + got.End.String(); s != tt.want {
+				t.Errorf("stored %q, want %q", s, tt.want)
+			}
+		})
+	}
+	// another when drops the dates; dated is not a move
+	f := &fakeTasks{}
+	if _, err := NewTasks(f).Add(context.Background(), model.Task{UserID: 1, Name: "x", Color: "coral", When: model.Pending, Date: &model.Dates{To: d("2026-10-20")}}); err != nil || f.dates[0] != nil {
+		t.Errorf("a pending task kept its dates: %v", err)
+	}
+	if err := NewTasks(&fakeTasks{}).Move(context.Background(), 1, 7, model.Dated); !errors.Is(err, model.ErrInvalid) {
+		t.Errorf("move to dated: err = %v, want invalid", err)
 	}
 }

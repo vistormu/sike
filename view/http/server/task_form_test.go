@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"html"
 	"net/http"
 	"net/http/httptest"
@@ -26,7 +27,7 @@ func TestTaskFormOpensOverItsTab(t *testing.T) {
 	h, svc := testApp(t)
 	ctx := context.Background()
 	you, _ := svc.Users.Add(ctx, "You", "🦊")
-	if _, err := svc.Tasks.Add(ctx, you.ID, "Fix bike", "mint", model.Pending, nil); err != nil {
+	if _, err := svc.Tasks.Add(ctx, model.Task{UserID: you.ID, Name: "Fix bike", Color: "mint", When: model.Pending}); err != nil {
 		t.Fatal(err)
 	}
 	if err := svc.Areas.Rename(ctx, you.ID, "mint", "House"); err != nil {
@@ -56,8 +57,8 @@ func TestTaskFormOpensOverItsTab(t *testing.T) {
 			if n := strings.Count(page, `name="area"`); n != 7 {
 				t.Errorf("%d area options, want 7", n)
 			}
-			// the form offers the whens the service takes: no date yet (m18)
-			if !strings.Contains(page, "Every week") || strings.Contains(page, "On a date") {
+			// the form offers the whens the service takes: all four
+			if !strings.Contains(page, "Every week") || !strings.Contains(page, "On a date") {
 				t.Error("the form's whens are not the service's")
 			}
 		})
@@ -99,7 +100,8 @@ func TestCreateTaskErrors(t *testing.T) {
 		{"   ", "sky", "pending", "A task needs a name"},
 		{"Fix bike", "", "someday", "Pick an area"},
 		{"Fix bike", "sky", "weekly", "Pick at least one day"},
-		{"Fix bike", "sky", "date", "When is every week, pending or someday"},
+		{"Fix bike", "sky", "date", "Pick a date"},
+		{"Fix bike", "sky", "later", "When is every week, on a date, pending or someday"},
 		{strings.Repeat("a", 81), "sky", "pending", "longer than 80"},
 	}
 	for _, tt := range tests {
@@ -147,7 +149,7 @@ func TestTasksOpenTheirForm(t *testing.T) {
 		name, color string
 		when        model.When
 	}{{"Fix bike", "mint", model.Pending}, {"Learn piano", "pink", model.Someday}} {
-		if _, err := svc.Tasks.Add(ctx, you.ID, x.name, x.color, x.when, nil); err != nil {
+		if _, err := svc.Tasks.Add(ctx, model.Task{UserID: you.ID, Name: x.name, Color: x.color, When: x.when}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -190,7 +192,7 @@ func TestUpdateTask(t *testing.T) {
 	h, svc := testApp(t)
 	ctx := context.Background()
 	you, _ := svc.Users.Add(ctx, "You", "🦊")
-	fix, _ := svc.Tasks.Add(ctx, you.ID, "Fix bike", "mint", model.Pending, nil)
+	fix, _ := svc.Tasks.Add(ctx, model.Task{UserID: you.ID, Name: "Fix bike", Color: "mint", When: model.Pending})
 	in := &http.Cookie{Name: userCookieName, Value: "1"}
 
 	// a new when moves it: the redirect follows it to its tab
@@ -214,7 +216,7 @@ func TestUpdateTask(t *testing.T) {
 			t.Errorf("the failed edit lacks %q", want)
 		}
 	}
-	if again, _ := svc.Tasks.Get(ctx, you.ID, fix.ID); again != got {
+	if again, _ := svc.Tasks.Get(ctx, you.ID, fix.ID); again.Name != got.Name || again.Color != got.Color || again.When != got.When {
 		t.Errorf("a failed edit changed the task: %+v", again)
 	}
 
@@ -228,7 +230,7 @@ func TestDeleteAndUndo(t *testing.T) {
 	ctx := context.Background()
 	you, _ := svc.Users.Add(ctx, "You", "🦊")
 	for _, name := range []string{"Fix bike", "Call the bank"} {
-		if _, err := svc.Tasks.Add(ctx, you.ID, name, "mint", model.Pending, nil); err != nil {
+		if _, err := svc.Tasks.Add(ctx, model.Task{UserID: you.ID, Name: name, Color: "mint", When: model.Pending}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -377,5 +379,70 @@ func TestWeeklyFormErrors(t *testing.T) {
 				t.Error("the schedule is not as typed")
 			}
 		})
+	}
+}
+
+// on a date: the Date box comes back as dates, typed the way people type them;
+// the edit form shows them as figma does.
+func TestDatedForm(t *testing.T) {
+	h, svc := testApp(t)
+	ctx := context.Background()
+	you, _ := svc.Users.Add(ctx, "You", "🦊")
+	in := &http.Cookie{Name: userCookieName, Value: "1"}
+
+	page := body(t, get(h, "/pending/new", in))
+	for _, want := range []string{`name="date_from"`, `name="time_to" value="" class="h-12 w-full border-2 border-border bg-surface px-3 text-body text-text" inputmode="numeric"`, `name="notify" class="sr-only" checked`, ">Date</legend>"} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the new form lacks %q", want)
+		}
+	}
+
+	tests := []struct {
+		name string
+		form url.Values
+		want string // the stored dates, or the toast
+	}{
+		{"the dentist", url.Values{"date_from": {"15/10"}, "time_from": {"11"}, "time_to": {"1200"}, "notify": {"on"}}, "2026-10-15 2026-10-15 11:00-12:00 true"},
+		{"all day drops the times", url.Values{"date_from": {"Thu, Oct 15"}, "time_from": {"11:00"}, "time_to": {"12:00"}, "all_day": {"on"}}, "2026-10-15 2026-10-15 - false"},
+		{"a deadline", url.Values{"date_to": {"20/10"}, "time_to": {"14:00"}}, " 2026-10-20 -14:00 false"},
+		{"a stretch", url.Values{"date_from": {"16/10/2026"}, "date_to": {"2026-10-18"}}, "2026-10-16 2026-10-18 - false"},
+		{"no date", url.Values{"time_from": {"11:00"}}, "Pick a date"},
+		{"a bad date", url.Values{"date_from": {"31/2"}}, "Dates are like 15/10 or 15/10/2026"},
+		{"a bad time", url.Values{"date_from": {"15/10"}, "time_from": {"11am"}, "time_to": {"12"}}, "Times are HH:MM, 24h"},
+		{"before it starts", url.Values{"date_from": {"18/10"}, "date_to": {"16/10"}}, "The end is before the start"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			form := url.Values{"name": {"Dentist"}, "area": {"coral"}, "when": {"date"}}
+			for k, v := range tt.form {
+				form[k] = v
+			}
+			res := postAs(h, "/pending/new", form, in)
+			if res.StatusCode == http.StatusUnprocessableEntity {
+				if page := body(t, res); !strings.Contains(page, tt.want) || !strings.Contains(page, `value="date" class="sr-only" checked`) {
+					t.Errorf("no toast %q, or not as typed", tt.want)
+				}
+				return
+			}
+			if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/upcoming" {
+				t.Fatalf("%d to %q, want 303 to /upcoming", res.StatusCode, res.Header.Get("Location"))
+			}
+			tasks, _ := svc.Tasks.List(ctx, you.ID)
+			d := tasks[0].Date // newest first
+			if d == nil {
+				t.Fatal("no dates stored")
+			}
+			if got := fmt.Sprintf("%s %s %s-%s %v", d.From, d.To, d.Start, d.End, d.Notify); got != tt.want {
+				t.Errorf("stored %q, want %q", got, tt.want)
+			}
+		})
+	}
+
+	// the edit form shows the dentist as figma writes it
+	page = body(t, get(h, "/pending/1", in))
+	for _, want := range []string{`value="date" class="sr-only" checked`, `name="date_from" value="Thu, Oct 15"`, `name="time_from" value="11:00"`, `name="date_to" value="Thu, Oct 15"`, `name="time_to" value="12:00"`} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the edit form lacks %q", want)
+		}
 	}
 }

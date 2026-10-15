@@ -18,7 +18,7 @@ func opWeekCmd() *cobra.Command {
 	var date string
 	show := &cobra.Command{
 		Use:   "show <user-id>",
-		Short: "print a person's week: its days, hours and what repeats in it (SIKE_TZ)",
+		Short: "print a person's week: its days, hours, what repeats and what is dated in it (SIKE_TZ)",
 		Example: `  sike op week show 1
   sike op week show 1 --date 2026-03-29`,
 		Args: cobra.ExactArgs(1),
@@ -64,8 +64,15 @@ func opWeekCmd() *cobra.Command {
 				weekly = append(weekly, p.Weekly())
 				name[p.ID] = names[p.TaskID]
 			}
+			var dated []clock.Dated
+			for _, t := range tasks {
+				if t.Date != nil {
+					dated = append(dated, t.Date.Clock(t.ID))
+				}
+			}
 			occs := clock.Expand(weekly, monday, sunday.AddDays(1))
-			from, to := clock.HourRange(occs)
+			days := clock.ExpandDated(dated, monday, sunday.AddDays(1))
+			from, to := clock.HourRange(append(occs, days...))
 
 			out := cmd.OutOrStdout()
 			fmt.Fprintf(out, "week %d · %s – %s · %s\n", monday.ISOWeek(), monday, sunday, loc)
@@ -76,7 +83,20 @@ func opWeekCmd() *cobra.Command {
 					mark = "  today"
 				}
 				fmt.Fprintf(out, "%s %s%s\n", d.Weekday().String()[:3], d, mark)
-				for _, o := range occs {
+				for _, o := range days { // dated: by task
+					if o.Date != d {
+						continue
+					}
+					switch o.Kind {
+					case clock.Timed:
+						fmt.Fprintf(out, "    %s–%s  %s (dated)\n", o.Start, o.End, names[o.Ref])
+					case clock.AllDay:
+						fmt.Fprintf(out, "    all day      %s\n", names[o.Ref])
+					case clock.Deadline:
+						fmt.Fprintf(out, "    due %-8s %s\n", o.End, names[o.Ref])
+					}
+				}
+				for _, o := range occs { // weekly: by placement
 					if o.Date == d {
 						fmt.Fprintf(out, "    %s–%s  %s\n", o.Start, o.End, name[o.Ref])
 					}

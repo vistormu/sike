@@ -42,6 +42,26 @@
                     <span data-add-time>{{ template "components/button" (dict "Label" "+ Add time") }}</span>
                 </div>
             </fieldset>
+            {{- /* shown while "On a date" is picked. no start date: a deadline */}}
+            <fieldset class="hidden flex-col group-has-[[name=when][value=date]:checked]/form:flex">
+                <legend class="mb-2 text-label text-text-muted uppercase">Date</legend>
+                {{- with .Dates }}
+                <div class="flex flex-col gap-3 border-2 border-border bg-surface p-3">
+                    <div class="flex gap-3">
+                        <div class="min-w-0 flex-1">{{ template "components/field" (dict "Label" "Start" "Name" "date_from" "Value" .From) }}</div>
+                        <div class="w-24 shrink-0">{{ template "components/field" (dict "Label" "Time" "Name" "time_from" "Value" .Start "Time" true) }}</div>
+                    </div>
+                    <div class="flex gap-3">
+                        <div class="min-w-0 flex-1">{{ template "components/field" (dict "Label" "End" "Name" "date_to" "Value" .To) }}</div>
+                        <div class="w-24 shrink-0">{{ template "components/field" (dict "Label" "Time" "Name" "time_to" "Value" .End "Time" true) }}</div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        {{ template "components/check" (dict "Name" "all_day" "Label" "All day" "On" .AllDay) }}
+                        {{ template "components/check" (dict "Name" "notify" "Label" "Notify at start" "On" .Notify) }}
+                    </div>
+                </div>
+                {{- end }}
+            </fieldset>
             {{- with .Delete }}
             <div class="mt-auto flex justify-center md:hidden">
                 {{ template "components/button" (dict "Label" "Delete task" "Danger" true "FormAction" .) }}

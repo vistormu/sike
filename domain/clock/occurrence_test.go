@@ -76,3 +76,43 @@ func TestHourRange(t *testing.T) {
 		}
 	}
 }
+
+func TestExpandDated(t *testing.T) {
+	d := func(s string) Date {
+		x, err := ParseDate(s)
+		if err != nil {
+			panic(err)
+		}
+		return x
+	}
+	ds := []Dated{
+		{Ref: 1, From: d("2026-10-14"), To: d("2026-10-14"), Start: tm("11:00"), End: tm("12:00")}, // dentist
+		{Ref: 2, From: d("2026-10-14"), To: d("2026-10-14"), Start: NoTime, End: NoTime},           // a birthday
+		{Ref: 3, To: d("2026-10-14"), Start: NoTime, End: tm("14:00")},                             // report due 14:00
+		{Ref: 4, To: d("2026-10-16"), Start: NoTime, End: NoTime},                                  // taxes due
+		{Ref: 5, From: d("2026-10-10"), To: d("2026-10-13"), Start: NoTime, End: NoTime},           // a trip, from last week
+		{Ref: 6, From: d("2026-10-17"), To: d("2026-10-25"), Start: tm("18:00"), End: tm("20:00")}, // into next week: chips
+		{Ref: 7, From: d("2026-10-20"), To: d("2026-10-20"), Start: tm("09:00"), End: tm("10:00")}, // next week
+	}
+	var got []string
+	for _, o := range ExpandDated(ds, d("2026-10-12"), d("2026-10-19")) {
+		got = append(got, fmt.Sprintf("%d %s %s %d %s-%s", o.Ref, o.Date.Weekday().String()[:3], o.Date, o.Kind, o.Start, o.End))
+	}
+	want := []string{
+		"5 Mon 2026-10-12 1 -", "5 Tue 2026-10-13 1 -",
+		"2 Wed 2026-10-14 1 -", "3 Wed 2026-10-14 2 -14:00", "1 Wed 2026-10-14 0 11:00-12:00",
+		"4 Fri 2026-10-16 2 -",
+		"6 Sat 2026-10-17 1 -", "6 Sun 2026-10-18 1 -",
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("got\n  %s\nwant\n  %s", strings.Join(got, "\n  "), strings.Join(want, "\n  "))
+	}
+	// only the timed stretch the hours
+	from, to := HourRange(ExpandDated([]Dated{
+		{Ref: 1, From: d("2026-10-14"), To: d("2026-10-14"), Start: tm("05:00"), End: tm("06:00")},
+		{Ref: 2, To: d("2026-10-14"), Start: NoTime, End: tm("23:30")},
+	}, d("2026-10-12"), d("2026-10-19")))
+	if from != 5 || to != 22 {
+		t.Errorf("hours %d–%d, want 05–22: a deadline's hour does not stretch them", from, to)
+	}
+}

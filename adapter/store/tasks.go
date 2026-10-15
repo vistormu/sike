@@ -8,15 +8,17 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/jmoiron/sqlx"
+
 	"sike/domain/model"
 )
 
 // top is the position above every task of a person in one place in time.
 const top = `(SELECT COALESCE(MIN(position), 0) - 1 FROM tasks WHERE user_id = :user_id AND "when" = :when AND NOT deleted)`
 
-// CreateTask adds a task on top of its place, with its placements (a weekly
-// task), in one transaction.
-func (s *Store) CreateTask(ctx context.Context, t model.Task, places []model.Placement) (model.Task, error) {
+// CreateTask adds a task on top of its place, with its placements (weekly) or
+// dates (dated), in one transaction.
+func (s *Store) CreateTask(ctx context.Context, t model.Task) (model.Task, error) {
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return model.Task{}, err
@@ -31,7 +33,10 @@ func (s *Store) CreateTask(ctx context.Context, t model.Task, places []model.Pla
 	if err != nil {
 		return model.Task{}, err
 	}
-	if err := insertPlacements(ctx, tx, id, places); err != nil {
+	if err := insertPlacements(ctx, tx, id, t.Places); err != nil {
+		return model.Task{}, err
+	}
+	if err := insertDates(ctx, tx, id, t.Date); err != nil {
 		return model.Task{}, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -46,6 +51,13 @@ func (s *Store) ListTasks(ctx context.Context, userID int64) ([]model.Task, erro
 		`SELECT id, user_id, name, color, "when", position FROM tasks WHERE user_id = ? AND NOT deleted`, userID)
 	if err != nil {
 		return nil, err
+	}
+	dates, err := s.datesOf(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	for i := range tasks {
+		tasks[i].Date = dates[tasks[i].ID]
 	}
 	// place in time (tab order), then area (palette order), then position
 	slices.SortFunc(tasks, func(a, b model.Task) int {
@@ -74,7 +86,25 @@ func (s *Store) getTask(ctx context.Context, userID, id int64, deleted bool) (mo
 	if errors.Is(err, sql.ErrNoRows) {
 		return model.Task{}, fmt.Errorf("task %d: %w", id, model.ErrNotFound)
 	}
-	return t, err
+	if err != nil {
+		return model.Task{}, err
+	}
+	if err := s.db.SelectContext(ctx, &t.Places,
+		`SELECT `+placementCols+` FROM placements p WHERE p.task_id = ? ORDER BY p.start, p.id`, id); err != nil {
+		return model.Task{}, err
+	}
+	var rows []dateRow
+	if err := s.db.SelectContext(ctx, &rows, `SELECT `+dateCols+` FROM task_dates d WHERE d.task_id = ?`, id); err != nil {
+		return model.Task{}, err
+	}
+	for _, r := range rows {
+		d, err := r.dates()
+		if err != nil {
+			return model.Task{}, err
+		}
+		t.Date = &d
+	}
+	return t, nil
 }
 
 // DeleteTask hides a task until its undo, and erases for good the person's
@@ -109,7 +139,7 @@ func (s *Store) RestoreTask(ctx context.Context, userID, id int64) error {
 }
 
 // MoveTask puts a task on top of another place in time (pending or someday:
-// the service checks), dropping its placements.
+// the service checks), dropping its placements and dates.
 func (s *Store) MoveTask(ctx context.Context, userID, id int64, when model.When) error {
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
@@ -125,16 +155,16 @@ func (s *Store) MoveTask(ctx context.Context, userID, id int64, when model.When)
 	if err := oneRow(res, "task", id); err != nil {
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM placements WHERE task_id = ?`, id); err != nil {
+	if err := dropTimes(ctx, tx, id); err != nil {
 		return err
 	}
 	return tx.Commit()
 }
 
-// UpdateTask sets name, color and when, and replaces the task's placements.
-// a task that changes its when goes on top of its new place; sqlite reads the
-// old row in SET, so the CASE sees the when before the update.
-func (s *Store) UpdateTask(ctx context.Context, t model.Task, places []model.Placement) (model.Task, error) {
+// UpdateTask sets name, color and when, and replaces the task's placements and
+// dates. a task that changes its when goes on top of its new place; sqlite
+// reads the old row in SET, so the CASE sees the when before the update.
+func (s *Store) UpdateTask(ctx context.Context, t model.Task) (model.Task, error) {
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return model.Task{}, err
@@ -150,16 +180,28 @@ func (s *Store) UpdateTask(ctx context.Context, t model.Task, places []model.Pla
 	if err := oneRow(res, "task", t.ID); err != nil {
 		return model.Task{}, err
 	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM placements WHERE task_id = ?`, t.ID); err != nil {
+	if err := dropTimes(ctx, tx, t.ID); err != nil {
 		return model.Task{}, err
 	}
-	if err := insertPlacements(ctx, tx, t.ID, places); err != nil {
+	if err := insertPlacements(ctx, tx, t.ID, t.Places); err != nil {
+		return model.Task{}, err
+	}
+	if err := insertDates(ctx, tx, t.ID, t.Date); err != nil {
 		return model.Task{}, err
 	}
 	if err := tx.Commit(); err != nil {
 		return model.Task{}, err
 	}
 	return s.GetTask(ctx, t.UserID, t.ID)
+}
+
+// dropTimes removes a task's placements and dates.
+func dropTimes(ctx context.Context, tx *sqlx.Tx, taskID int64) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM placements WHERE task_id = ?`, taskID); err != nil {
+		return err
+	}
+	_, err := tx.ExecContext(ctx, `DELETE FROM task_dates WHERE task_id = ?`, taskID)
+	return err
 }
 
 // oneRow turns "no row touched" into ErrNotFound.

@@ -11,14 +11,14 @@ import (
 )
 
 type TaskStore interface {
-	CreateTask(ctx context.Context, t model.Task, places []model.Placement) (model.Task, error)
+	CreateTask(ctx context.Context, t model.Task) (model.Task, error)
 	ListTasks(ctx context.Context, userID int64) ([]model.Task, error)
 	GetTask(ctx context.Context, userID, id int64) (model.Task, error)
 	DeleteTask(ctx context.Context, userID, id int64) error
 	GetDeletedTask(ctx context.Context, userID, id int64) (model.Task, error)
 	RestoreTask(ctx context.Context, userID, id int64) error
 	MoveTask(ctx context.Context, userID, id int64, when model.When) error
-	UpdateTask(ctx context.Context, t model.Task, places []model.Placement) (model.Task, error)
+	UpdateTask(ctx context.Context, t model.Task) (model.Task, error)
 	ListPlacements(ctx context.Context, userID int64) ([]model.Placement, error)
 	TaskPlacements(ctx context.Context, userID, taskID int64) ([]model.Placement, error)
 	GetPlacement(ctx context.Context, userID, id int64) (model.Placement, error)
@@ -37,50 +37,95 @@ func NewTasks(store TaskStore) *Tasks {
 const maxTaskName = 80
 
 // whens are the places a task can be put, for now.
-var whens = []model.When{model.Weekly, model.Pending, model.Someday}
+var whens = []model.When{model.Weekly, model.Dated, model.Pending, model.Someday}
 
-// Add creates a task on top of its place. a weekly task comes with its
-// placements; any other ignores them.
-func (s *Tasks) Add(ctx context.Context, userID int64, name, color string, when model.When, places []model.Placement) (model.Task, error) {
-	t, err := check(model.Task{UserID: userID, Name: name, Color: color, When: when})
+// Add creates a task on top of its place: a weekly task with its Places, a
+// dated one with its Date. what another when does not use is dropped.
+func (s *Tasks) Add(ctx context.Context, t model.Task) (model.Task, error) {
+	t.ID = 0
+	t, err := check(t)
 	if err != nil {
 		return model.Task{}, err
 	}
-	if places, err = checkPlaces(when, places); err != nil {
-		return model.Task{}, err
-	}
-	return s.store.CreateTask(ctx, t, places)
+	return s.store.CreateTask(ctx, t)
 }
 
-// Edit changes a task's name, area and when, and replaces its placements. a
-// new when moves it on top of its new place (decisions/0005); the same when
-// keeps its position. a task that stops being weekly loses its placements.
-func (s *Tasks) Edit(ctx context.Context, userID, id int64, name, color string, when model.When, places []model.Placement) (model.Task, error) {
-	t, err := check(model.Task{ID: id, UserID: userID, Name: name, Color: color, When: when})
+// Edit changes a task's name, area, when and times, all of them: its places
+// and dates are replaced. a new when moves it on top of its new place
+// (decisions/0005); the same when keeps its position.
+func (s *Tasks) Edit(ctx context.Context, t model.Task) (model.Task, error) {
+	t, err := check(t)
 	if err != nil {
 		return model.Task{}, err
 	}
-	if places, err = checkPlaces(when, places); err != nil {
-		return model.Task{}, err
-	}
-	return s.store.UpdateTask(ctx, t, places)
+	return s.store.UpdateTask(ctx, t)
 }
 
-// checkPlaces: a weekly task needs at least one valid placement; any other
-// has none.
-func checkPlaces(when model.When, places []model.Placement) ([]model.Placement, error) {
-	if when != model.Weekly {
-		return nil, nil
+// check validates a task as typed: its name trimmed, its places or dates as
+// its when needs them, the others dropped.
+func check(t model.Task) (model.Task, error) {
+	t.Name = strings.TrimSpace(t.Name)
+	switch {
+	case t.Name == "":
+		return t, model.Invalid("A task needs a name")
+	case utf8.RuneCountInString(t.Name) > maxTaskName:
+		return t, model.Invalid("The name is longer than %d characters", maxTaskName)
+	case !model.IsColor(t.Color):
+		return t, model.Invalid("Pick an area")
 	}
-	if len(places) == 0 {
-		return nil, model.Invalid("Pick at least one day")
+	if err := checkWhen(t.When); err != nil {
+		return t, err
 	}
-	for _, p := range places {
-		if err := checkPlacement(p); err != nil {
-			return nil, err
+	places, date := t.Places, t.Date
+	t.Places, t.Date = nil, nil
+	switch t.When {
+	case model.Weekly:
+		if len(places) == 0 {
+			return t, model.Invalid("Pick at least one day")
 		}
+		for _, p := range places {
+			if err := checkPlacement(p); err != nil {
+				return t, err
+			}
+		}
+		t.Places = places
+	case model.Dated:
+		d, err := checkDates(date)
+		if err != nil {
+			return t, err
+		}
+		t.Date = &d
 	}
-	return places, nil
+	return t, nil
+}
+
+// checkDates: an end date (the start's, if only that is given); no start is a
+// deadline, at an hour or not; with a start, both times or none (all day), and
+// one day's end after its start (decisions/0008).
+func checkDates(d *model.Dates) (model.Dates, error) {
+	if d == nil || d.From.IsZero() && d.To.IsZero() {
+		return model.Dates{}, model.Invalid("Pick a date")
+	}
+	out := *d
+	if out.To.IsZero() {
+		out.To = out.From
+	}
+	inDay := func(t clock.Time, end bool) bool {
+		return t == clock.NoTime || t >= 0 && (t < clock.Midnight || end && t == clock.Midnight)
+	}
+	switch {
+	case !inDay(out.Start, false) || !inDay(out.End, true):
+		return out, model.Invalid("Times go from 00:00 to 24:00")
+	case out.From.IsZero(): // a deadline
+		out.Start = clock.NoTime
+	case out.To.Before(out.From):
+		return out, model.Invalid("The end is before the start")
+	case (out.Start == clock.NoTime) != (out.End == clock.NoTime):
+		return out, model.Invalid("A time needs a start and an end")
+	case out.From == out.To && out.Start != clock.NoTime && out.End <= out.Start:
+		return out, model.Invalid("The end is before the start")
+	}
+	return out, nil
 }
 
 // checkPlacement: some days, and a span that starts before it ends, on one
@@ -95,20 +140,6 @@ func checkPlacement(p model.Placement) error {
 		return model.Invalid("The end is before the start")
 	}
 	return nil
-}
-
-// check validates a task as typed, its name trimmed.
-func check(t model.Task) (model.Task, error) {
-	t.Name = strings.TrimSpace(t.Name)
-	switch {
-	case t.Name == "":
-		return t, model.Invalid("A task needs a name")
-	case utf8.RuneCountInString(t.Name) > maxTaskName:
-		return t, model.Invalid("The name is longer than %d characters", maxTaskName)
-	case !model.IsColor(t.Color):
-		return t, model.Invalid("Pick an area")
-	}
-	return t, checkWhen(t.When)
 }
 
 // Whens are the places a task can be put, in tab order: the task form offers
@@ -141,11 +172,11 @@ func (s *Tasks) Restore(ctx context.Context, userID, id int64) error {
 	return s.store.RestoreTask(ctx, userID, id)
 }
 
-// Move puts a task in another place in time, on top there. weekly needs
-// times: that is Edit.
+// Move puts a task in another place in time, on top there. weekly and dated
+// need times: that is Edit.
 func (s *Tasks) Move(ctx context.Context, userID, id int64, when model.When) error {
-	if when == model.Weekly {
-		return model.Invalid("A weekly task needs its times: edit it instead")
+	if when == model.Weekly || when == model.Dated {
+		return model.Invalid("A %s task needs its times: edit it instead", map[model.When]string{model.Weekly: "weekly", model.Dated: "dated"}[when])
 	}
 	if err := checkWhen(when); err != nil {
 		return err
@@ -193,5 +224,5 @@ func checkWhen(w model.When) error {
 			return nil
 		}
 	}
-	return model.Invalid("When is every week, pending or someday")
+	return model.Invalid("When is every week, on a date, pending or someday")
 }

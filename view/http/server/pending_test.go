@@ -21,7 +21,7 @@ func TestPendingGroupsByArea(t *testing.T) {
 	you, _ := svc.Users.Add(ctx, "You", "🦊")
 	them, _ := svc.Users.Add(ctx, "Partner", "🐼")
 	add := func(user int64, name, color string, when model.When) {
-		if _, err := svc.Tasks.Add(ctx, user, name, color, when, nil); err != nil {
+		if _, err := svc.Tasks.Add(ctx, model.Task{UserID: user, Name: name, Color: color, When: when}); err != nil {
 			t.Fatal(err)
 		}
 	}

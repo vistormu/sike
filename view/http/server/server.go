@@ -53,7 +53,7 @@ func New(cfg Config) (*Server, error) {
 	mux.Handle("GET /someday", people.Require(http.HandlerFunc(someday.Show)))
 	week := handlers.Week{R: rd, Frame: frame, Tasks: cfg.Tasks, Loc: cfg.Loc, Now: cfg.Now}
 	mux.Handle("GET /week", people.Require(http.HandlerFunc(week.Show)))
-	form := handlers.TaskForm{Tasks: cfg.Tasks, Areas: cfg.Areas}
+	form := handlers.TaskForm{Tasks: cfg.Tasks, Areas: cfg.Areas, Loc: cfg.Loc, Now: cfg.Now}
 	for tab, page := range map[string]handlers.Page{"week": week.Page, "pending": pending.Page, "someday": someday.Page} {
 		mux.Handle("GET /"+tab+"/new", people.Require(form.New(tab, page)))
 		mux.Handle("POST /"+tab+"/new", people.Require(form.Create(tab, page)))
