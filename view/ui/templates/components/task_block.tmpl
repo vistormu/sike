@@ -1,7 +1,8 @@
 {{/* Name, Time (empty hides it), Color. Compact: under ~45 min. fills its
-     container: the timeline sets position and height. */}}
+     container: the timeline sets position and height. Selected: the fill
+     turns butter. */}}
 {{ define "components/task_block" -}}
-<div class="{{ if .Compact }}items-center gap-2 px-2{{ else }}flex-col gap-1 px-2 pt-2{{ end }} flex size-full overflow-hidden border-2 border-border text-text" style="background-color: var(--task-{{ .Color }})">
+<div class="{{ if .Compact }}items-center gap-2 px-2{{ else }}flex-col gap-1 px-2 pt-2{{ end }} flex size-full overflow-hidden border-2 border-border bg-(--fill) text-text data-selected:bg-accent"{{ if .Selected }} data-selected{{ end }} style="--fill: var(--task-{{ .Color }})">
     <span class="{{ if .Compact }}flex-1{{ end }} min-w-0 truncate text-strong">{{ .Name }}</span>
     {{- with .Time }}
     <span class="{{ if $.Compact }}shrink-0{{ else }}truncate{{ end }} font-mono text-mono opacity-75">{{ . }}</span>

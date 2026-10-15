@@ -12,6 +12,7 @@ import (
 type fakeTasks struct {
 	created []model.Task
 	moved   map[int64]model.When
+	updated []model.Task
 }
 
 func (f *fakeTasks) CreateTask(_ context.Context, t model.Task) (model.Task, error) {
@@ -23,6 +24,10 @@ func (f *fakeTasks) GetTask(context.Context, int64, int64) (model.Task, error) {
 	return model.Task{}, nil
 }
 func (f *fakeTasks) DeleteTask(context.Context, int64, int64) error { return nil }
+func (f *fakeTasks) UpdateTask(_ context.Context, t model.Task) (model.Task, error) {
+	f.updated = append(f.updated, t)
+	return t, nil
+}
 func (f *fakeTasks) MoveTask(_ context.Context, _, id int64, when model.When) error {
 	f.moved[id] = when
 	return nil
@@ -81,5 +86,26 @@ func TestTaskWhens(t *testing.T) {
 	got[0] = model.Weekly
 	if s.Whens()[0] != model.Pending {
 		t.Error("Whens hands out the service's own slice")
+	}
+}
+
+func TestEditTask(t *testing.T) {
+	f := &fakeTasks{}
+	s := NewTasks(f)
+	got, err := s.Edit(context.Background(), 1, 7, "  Fix bike ", "mint", model.Someday)
+	if err != nil || got.ID != 7 || got.UserID != 1 || got.Name != "Fix bike" || got.Color != "mint" || got.When != model.Someday {
+		t.Errorf("edit: %+v, %v", got, err)
+	}
+	// the same checks as Add
+	for _, bad := range []struct {
+		name, color string
+		when        model.When
+	}{{"", "mint", model.Pending}, {"x", "beige", model.Pending}, {"x", "mint", model.Weekly}} {
+		if _, err := s.Edit(context.Background(), 1, 7, bad.name, bad.color, bad.when); !errors.Is(err, model.ErrInvalid) {
+			t.Errorf("edit %+v: err = %v, want invalid", bad, err)
+		}
+	}
+	if len(f.updated) != 1 {
+		t.Errorf("%d updates stored, want 1", len(f.updated))
 	}
 }

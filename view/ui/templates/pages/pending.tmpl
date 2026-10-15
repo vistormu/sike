@@ -7,7 +7,7 @@
         <section>
             {{ template "components/group_header" (dict "Name" .Name "Color" .Color "Count" (len .Tasks)) }}
             {{- range .Tasks }}
-            {{ template "components/row" (dict "Name" .Name "Color" .Color "Handle" true) }}
+            {{ template "components/row" (dict "Name" .Name "Color" .Color "Handle" true "Href" (printf "/pending/%d" .ID)) }}
             {{- end }}
         </section>
         {{- end }}

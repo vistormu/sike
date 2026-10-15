@@ -1,4 +1,6 @@
-{{/* Name, Color. fills its box: the grid sets the size. */}}
+{{/* Name, Color. fills its box: the grid sets the size. Href: a task,
+     selected by a tap and opened by the next (app.js); Selected: the fill
+     turns butter. */}}
 {{ define "components/tile" -}}
-<span class="flex size-full flex-col justify-end border-2 border-border p-4 text-title whitespace-pre-wrap text-text" style="background-color: var(--task-{{ .Color }})">{{ .Name }}</span>
+{{ if .Href }}<a href="{{ .Href }}" data-task{{ if .Selected }} data-selected{{ end }}{{ else }}<span{{ end }} class="flex size-full flex-col justify-end border-2 border-border bg-(--fill) p-4 text-title whitespace-pre-wrap text-text data-selected:bg-accent" style="--fill: var(--task-{{ .Color }})">{{ .Name }}{{ if .Href }}</a>{{ else }}</span>{{ end }}
 {{- end }}

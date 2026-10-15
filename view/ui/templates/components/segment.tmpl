@@ -1,7 +1,7 @@
 {{/* Name (the radio group), Value, Label. Active: checked. segments sit with
      no gap inside one box: flex border-2 border-border bg-surface. */}}
 {{ define "components/segment" -}}
-<label class="flex flex-1 cursor-pointer items-center justify-center px-3 py-2 text-strong whitespace-nowrap text-text-muted has-checked:bg-accent has-checked:text-text">
+<label class="flex flex-1 cursor-pointer items-center justify-center px-3 py-2 text-strong whitespace-nowrap text-text-muted has-checked:bg-accent has-checked:text-text has-focus-visible:[outline-style:auto]">
     <input type="radio" name="{{ .Name }}" value="{{ .Value }}" class="sr-only"{{ if .Active }} checked{{ end }}>{{ .Label }}
 </label>
 {{- end }}

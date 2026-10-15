@@ -35,6 +35,8 @@
         <div class="flex items-start gap-4 p-4">
             <div class="h-22 w-40">{{ template "components/task_block" (dict "Name" "Work" "Time" "09:00–17:00" "Color" "sky") }}</div>
             <div class="h-8 w-40">{{ template "components/task_block" (dict "Name" "Work" "Time" "09:00–17:00" "Color" "sky" "Compact" true) }}</div>
+            <div class="h-22 w-40">{{ template "components/task_block" (dict "Name" "Work" "Time" "09:00–17:00" "Color" "sky" "Selected" true) }}</div>
+            <div class="h-8 w-40">{{ template "components/task_block" (dict "Name" "Work" "Time" "09:00–17:00" "Color" "sky" "Compact" true "Selected" true) }}</div>
         </div>
     </section>
 
@@ -82,6 +84,7 @@
         <div class="flex w-[358px] flex-col p-4 box-content">
             {{ template "components/row" (dict "Name" "Fix bike" "Color" "lavender" "Meta" "Due in 2 days" "Handle" true) }}
             {{ template "components/row" (dict "Name" "Call the bank" "Color" "mint") }}
+            {{ template "components/row" (dict "Name" "Fix bike" "Color" "lavender" "Meta" "Due in 2 days" "Handle" true "Href" "#" "Selected" true) }}
         </div>
     </section>
 
@@ -116,6 +119,9 @@
         <h2 class="text-title">Tile</h2>
         <div class="h-28 w-50 p-4 box-content">
             {{ template "components/tile" (dict "Name" "Learn piano" "Color" "lavender") }}
+        </div>
+        <div class="h-28 w-50 p-4 box-content">
+            {{ template "components/tile" (dict "Name" "Learn piano" "Color" "lavender" "Href" "#" "Selected" true) }}
         </div>
     </section>
 

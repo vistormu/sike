@@ -112,3 +112,34 @@ func TestTaskNeedsAnAreaAndAWhen(t *testing.T) {
 		t.Error("a task with an unknown when was stored")
 	}
 }
+
+func TestUpdateTask(t *testing.T) {
+	ctx := context.Background()
+	s := New(testDB(t))
+	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"}, model.DefaultAreas)
+	a := newTask(t, s, u.ID, "a", "sky", model.Pending)
+	newTask(t, s, u.ID, "b", "sky", model.Pending)
+	newTask(t, s, u.ID, "wish", "sky", model.Someday)
+
+	// same when: renamed and recolored, its place kept
+	got, err := s.UpdateTask(ctx, model.Task{ID: a.ID, UserID: u.ID, Name: "a2", Color: "sky", When: model.Pending})
+	if err != nil || got.Name != "a2" || got.Position != a.Position {
+		t.Fatalf("update in place: %+v, %v (position was %d)", got, err, a.Position)
+	}
+	// a new when: on top there
+	if _, err := s.UpdateTask(ctx, model.Task{ID: a.ID, UserID: u.ID, Name: "a2", Color: "pink", When: model.Someday}); err != nil {
+		t.Fatal(err)
+	}
+	all, _ := s.ListTasks(ctx, u.ID)
+	if g := taskNames(all); !slices.Equal(g, []string{"b", "wish", "a2"}) {
+		t.Errorf("order = %q, want b, then someday: wish (sky) before a2 (pink)", g)
+	}
+	if all[2].When != model.Someday || all[2].Color != "pink" || all[2].Position >= all[1].Position {
+		t.Errorf("moved task = %+v, want someday, pink, on top (position below %d)", all[2], all[1].Position)
+	}
+	// someone else's task: not found
+	them, _ := s.CreateUser(ctx, model.User{Name: "Partner", Emoji: "🐼"}, model.DefaultAreas)
+	if _, err := s.UpdateTask(ctx, model.Task{ID: a.ID, UserID: them.ID, Name: "x", Color: "sky", When: model.Pending}); !errors.Is(err, model.ErrNotFound) {
+		t.Errorf("update another's task: err = %v, want ErrNotFound", err)
+	}
+}

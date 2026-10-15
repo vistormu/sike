@@ -53,6 +53,8 @@ func New(cfg Config) (*Server, error) {
 	for tab, page := range map[string]handlers.Page{"pending": pending.Page, "someday": someday.Page} {
 		mux.Handle("GET /"+tab+"/new", people.Require(form.New(tab, page)))
 		mux.Handle("POST /"+tab+"/new", people.Require(form.Create(tab, page)))
+		mux.Handle("GET /"+tab+"/{id}", people.Require(form.Edit(tab, page)))
+		mux.Handle("POST /"+tab+"/{id}", people.Require(form.Update(tab, page)))
 	}
 	mux.HandleFunc("GET /who", people.Who)
 	mux.HandleFunc("GET /who/new", people.New)

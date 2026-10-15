@@ -8,7 +8,7 @@
             {{ template "components/group_header" (dict "Name" .Name "Color" .Color "Count" (len .Tasks)) }}
             <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
                 {{- range .Tasks }}
-                <div class="h-24">{{ template "components/tile" (dict "Name" .Name "Color" .Color) }}</div>
+                <div class="h-24">{{ template "components/tile" (dict "Name" .Name "Color" .Color "Href" (printf "/someday/%d" .ID)) }}</div>
                 {{- end }}
             </div>
         </section>

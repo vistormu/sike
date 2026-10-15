@@ -119,7 +119,52 @@ func opTaskCmd() *cobra.Command {
 		},
 	}
 
-	task.AddCommand(add, list, rm, move)
+	var name, editArea, editWhen string
+	edit := &cobra.Command{
+		Use:   "edit <user-id> <task-id>",
+		Short: "change a task's name, area or when; a new when puts it on top there",
+		Example: `  sike op task edit 1 4 --name "Fix the bike"
+  sike op task edit 1 4 --area Fun --when someday`,
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			userID, id, err := parseIDs(args[0], args[1])
+			if err != nil {
+				return err
+			}
+			svc, done, err := taskServices(cmd)
+			if err != nil {
+				return err
+			}
+			defer done()
+			t, err := svc.tasks.Get(cmd.Context(), userID, id)
+			if err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("name") {
+				t.Name = name
+			}
+			if cmd.Flags().Changed("area") {
+				if t.Color, err = svc.areaColor(cmd, userID, editArea); err != nil {
+					return err
+				}
+			}
+			if cmd.Flags().Changed("when") {
+				t.When = model.When(editWhen)
+			}
+			t, err = svc.tasks.Edit(cmd.Context(), userID, id, t.Name, t.Color, t.When)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "%d  %s  %s  %s\n", t.ID, t.When, t.Color, t.Name)
+			return nil
+		},
+	}
+	edit.Flags().StringVar(&name, "name", "", "the new name")
+	edit.Flags().StringVar(&editArea, "area", "", "the new area: its color or its name")
+	edit.Flags().StringVar(&editWhen, "when", "", "pending or someday")
+	edit.MarkFlagsOneRequired("name", "area", "when")
+
+	task.AddCommand(add, list, edit, rm, move)
 	return task
 }
 

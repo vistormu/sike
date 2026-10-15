@@ -136,3 +136,87 @@ func TestTaskFormNeedsAPerson(t *testing.T) {
 		t.Errorf("POST without a person: %d to %q", res.StatusCode, res.Header.Get("Location"))
 	}
 }
+
+func TestTasksOpenTheirForm(t *testing.T) {
+	h, svc := testApp(t)
+	ctx := context.Background()
+	you, _ := svc.Users.Add(ctx, "You", "🦊")
+	for _, x := range []struct {
+		name, color string
+		when        model.When
+	}{{"Fix bike", "mint", model.Pending}, {"Learn piano", "pink", model.Someday}} {
+		if _, err := svc.Tasks.Add(ctx, you.ID, x.name, x.color, x.when); err != nil {
+			t.Fatal(err)
+		}
+	}
+	in := &http.Cookie{Name: userCookieName, Value: "1"}
+
+	// every task on a tab links to its form, selected first by app.js
+	if page := body(t, get(h, "/pending", in)); !strings.Contains(page, `href="/pending/1" data-task`) {
+		t.Error("a pending row does not link to its form")
+	}
+	if page := body(t, get(h, "/someday", in)); !strings.Contains(page, `href="/someday/2" data-task`) {
+		t.Error("a tile does not link to its form")
+	}
+
+	page := body(t, get(h, "/pending/1", in))
+	for _, want := range []string{
+		`action="/pending/1"`,
+		`name="name" value="Fix bike"`,
+		`value="mint" class="sr-only" checked`,
+		`value="pending" class="sr-only" checked`,
+	} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the edit form lacks %q", want)
+		}
+	}
+	for _, path := range []string{"/pending/9", "/pending/x"} {
+		if res := get(h, path, in); res.StatusCode != http.StatusNotFound {
+			t.Errorf("GET %s: %d, want 404", path, res.StatusCode)
+		}
+	}
+	// someone else's task is not found
+	if _, err := svc.Users.Add(ctx, "Partner", "🐼"); err != nil {
+		t.Fatal(err)
+	}
+	if res := get(h, "/pending/1", &http.Cookie{Name: userCookieName, Value: "2"}); res.StatusCode != http.StatusNotFound {
+		t.Errorf("another's task: %d, want 404", res.StatusCode)
+	}
+}
+
+func TestUpdateTask(t *testing.T) {
+	h, svc := testApp(t)
+	ctx := context.Background()
+	you, _ := svc.Users.Add(ctx, "You", "🦊")
+	fix, _ := svc.Tasks.Add(ctx, you.ID, "Fix bike", "mint", model.Pending)
+	in := &http.Cookie{Name: userCookieName, Value: "1"}
+
+	// a new when moves it: the redirect follows it to its tab
+	res := postAs(h, "/pending/1", url.Values{"name": {"Fix the bike"}, "area": {"pink"}, "when": {"someday"}}, in)
+	if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/someday" {
+		t.Fatalf("update: %d to %q, want 303 to /someday", res.StatusCode, res.Header.Get("Location"))
+	}
+	got, _ := svc.Tasks.Get(ctx, you.ID, fix.ID)
+	if got.Name != "Fix the bike" || got.Color != "pink" || got.When != model.Someday {
+		t.Errorf("task = %+v", got)
+	}
+
+	// a bad edit: 422, the toast, the form as typed, the task unchanged
+	res = postAs(h, "/someday/1", url.Values{"name": {"  "}, "area": {"sky"}, "when": {"pending"}}, in)
+	if res.StatusCode != http.StatusUnprocessableEntity {
+		t.Fatalf("bad update: status %d, want 422", res.StatusCode)
+	}
+	page := body(t, res)
+	for _, want := range []string{`role="alert"`, "A task needs a name", `action="/someday/1"`, `value="sky" class="sr-only" checked`, `value="pending" class="sr-only" checked`} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the failed edit lacks %q", want)
+		}
+	}
+	if again, _ := svc.Tasks.Get(ctx, you.ID, fix.ID); again != got {
+		t.Errorf("a failed edit changed the task: %+v", again)
+	}
+
+	if res := postAs(h, "/pending/9", url.Values{"name": {"x"}, "area": {"sky"}, "when": {"pending"}}, in); res.StatusCode != http.StatusNotFound {
+		t.Errorf("update a missing task: %d, want 404", res.StatusCode)
+	}
+}

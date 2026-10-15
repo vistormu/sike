@@ -1,6 +1,11 @@
-{{/* Name, Color, Meta (empty hides it). Handle: the drag handle (pending). */}}
+{{/* Name, Color, Meta (empty hides it). Handle: the drag handle (pending).
+     Href: a task, selected by a tap and opened by the next (app.js);
+     Selected: the butter plate behind it, 8px out to the sides. */}}
 {{ define "components/row" -}}
-<div class="flex h-15 items-center gap-3 border-b border-divider">
+{{ if .Href }}<a href="{{ .Href }}" data-task{{ if .Selected }} data-selected{{ end }}{{ else }}<div{{ end }} class="group relative isolate flex h-15 items-center gap-3 border-b border-divider">
+    {{- if .Href }}
+    <span class="absolute top-0 -right-2 -bottom-px -left-2 -z-10 hidden border-2 border-border bg-accent group-data-selected:block"></span>
+    {{- end }}
     {{- template "components/swatch" (dict "Color" .Color) }}
     <div class="flex min-w-0 flex-1 flex-col">
         <span class="truncate text-body text-text">{{ .Name }}</span>
@@ -11,5 +16,5 @@
     {{- if .Handle }}
     <span class="font-mono text-mono text-text-muted">::</span>
     {{- end }}
-</div>
+{{ if .Href }}</a>{{ else }}</div>{{ end }}
 {{- end }}

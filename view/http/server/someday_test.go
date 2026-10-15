@@ -10,7 +10,7 @@ import (
 	"sike/domain/model"
 )
 
-var tileRe = regexp.MustCompile(`style="background-color: var\(--task-(\w+)\)">([^<]+)</span>`)
+var tileRe = regexp.MustCompile(`style="--fill: var\(--task-(\w+)\)">([^<]+)</a>`)
 
 func TestSomedayTilesByArea(t *testing.T) {
 	h, svc := testApp(t)

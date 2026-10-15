@@ -41,6 +41,7 @@ dev pages: `/dev/components` shows every component variant (compare with figma),
 | `sike op area rename <user-id> <color> <name>` | rename one of them |
 | `sike op task add <user-id> <name> --area <area> [--when someday]` | add a task (area: color or name; when: pending, the default, or someday) |
 | `sike op task list <user-id>` | a person's tasks, in tab order |
+| `sike op task edit <user-id> <task-id> [--name] [--area] [--when]` | change a task; a new when puts it on top there |
 | `sike op task rm <user-id> <task-id>` | delete a task: done |
 | `sike op task move <user-id> <task-id> <when>` | move a task to pending or someday, on top |
 

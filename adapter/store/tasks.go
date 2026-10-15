@@ -73,6 +73,23 @@ func (s *Store) MoveTask(ctx context.Context, userID, id int64, when model.When)
 	return oneRow(res, "task", id)
 }
 
+// UpdateTask sets name, color and when. a task that changes its when goes on
+// top of its new place; sqlite reads the old row in SET, so the CASE sees the
+// when before the update.
+func (s *Store) UpdateTask(ctx context.Context, t model.Task) (model.Task, error) {
+	res, err := s.db.NamedExecContext(ctx,
+		`UPDATE tasks SET name = :name, color = :color,
+			position = CASE WHEN "when" = :when THEN position ELSE `+top+` END, "when" = :when
+		WHERE user_id = :user_id AND id = :id`, t)
+	if err != nil {
+		return model.Task{}, err
+	}
+	if err := oneRow(res, "task", t.ID); err != nil {
+		return model.Task{}, err
+	}
+	return s.GetTask(ctx, t.UserID, t.ID)
+}
+
 // oneRow turns "no row touched" into ErrNotFound.
 func oneRow(res sql.Result, what string, id int64) error {
 	if n, err := res.RowsAffected(); err != nil {
