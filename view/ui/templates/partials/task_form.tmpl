@@ -48,11 +48,11 @@
                 {{- with .Dates }}
                 <div class="flex flex-col gap-3 border-2 border-border bg-surface p-3">
                     <div class="flex gap-3">
-                        <div class="min-w-0 flex-1">{{ template "components/field" (dict "Label" "Start" "Name" "date_from" "Value" .From) }}</div>
+                        <div class="min-w-0 flex-1">{{ template "components/field" (dict "Label" "Start" "Name" "date_from" "Value" .From "Date" true) }}</div>
                         <div class="w-24 shrink-0">{{ template "components/field" (dict "Label" "Time" "Name" "time_from" "Value" .Start "Time" true) }}</div>
                     </div>
                     <div class="flex gap-3">
-                        <div class="min-w-0 flex-1">{{ template "components/field" (dict "Label" "End" "Name" "date_to" "Value" .To) }}</div>
+                        <div class="min-w-0 flex-1">{{ template "components/field" (dict "Label" "End" "Name" "date_to" "Value" .To "Date" true) }}</div>
                         <div class="w-24 shrink-0">{{ template "components/field" (dict "Label" "Time" "Name" "time_to" "Value" .End "Time" true) }}</div>
                     </div>
                     <div class="flex items-center gap-4">

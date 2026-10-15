@@ -391,7 +391,7 @@ func TestDatedForm(t *testing.T) {
 	in := &http.Cookie{Name: userCookieName, Value: "1"}
 
 	page := body(t, get(h, "/pending/new", in))
-	for _, want := range []string{`name="date_from"`, `name="time_to" value="" class="h-12 w-full border-2 border-border bg-surface px-3 text-body text-text" inputmode="numeric"`, `name="notify" class="sr-only" checked`, ">Date</legend>"} {
+	for _, want := range []string{`name="date_from" value="" class="h-12 w-full border-2 border-border bg-surface px-3 text-body text-text" autocomplete="off" data-date`, `name="time_to" value="" class="h-12 w-full border-2 border-border bg-surface px-3 text-body text-text" inputmode="numeric"`, `name="notify" class="sr-only" checked`, ">Date</legend>"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the new form lacks %q", want)
 		}
