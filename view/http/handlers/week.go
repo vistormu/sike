@@ -44,7 +44,12 @@ type weekDay struct {
 type weekBlock struct {
 	Name, Time, Color, Href string
 	Top, Height             string // % of the timeline
+	Left, Width             string // % of the day's column (clock.Layout)
+	Inset                   int    // px from the left: nesting
 }
+
+// nestInset is how far a nested block sits in from what holds it (figma: 40px).
+const nestInset = 40
 
 func (h Week) Show(w http.ResponseWriter, r *http.Request) { h.Page(w, r) }
 
@@ -97,15 +102,21 @@ func (h Week) Page(w http.ResponseWriter, r *http.Request, opts ...Option) {
 	}
 	for d := monday; d.Before(end); d = d.AddDays(1) {
 		wd := weekDay{Day: d.Weekday().String()[:3], Date: fmt.Sprint(d.Day), Today: d == today}
+		var day []clock.Occurrence
 		for _, o := range occs {
-			if o.Date != d {
-				continue
+			if o.Date == d {
+				day = append(day, o)
 			}
+		}
+		slots, order := clock.Layout(day)
+		for _, i := range order { // what is nested is drawn over what holds it
+			o, sl := day[i], slots[i]
 			t := taskOf[o.Ref]
 			wd.Blocks = append(wd.Blocks, weekBlock{
 				Name: t.Name, Color: t.Color, Href: fmt.Sprintf("/week/%d", t.ID),
 				Time: o.Start.String() + "–" + o.End.String(),
 				Top:  percent(pct(o.Start)), Height: percent(pct(o.End) - pct(o.Start)),
+				Left: percent(sl.Left * 100), Width: percent(sl.Width * 100), Inset: nestInset * sl.Depth,
 			})
 		}
 		if wd.Today {

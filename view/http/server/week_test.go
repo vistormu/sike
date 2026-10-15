@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	blockRe = regexp.MustCompile(`style="top: calc\(([\d.]+)% \+ 3px\); height: calc\(([\d.]+)% - 6px\)">\s*<div[^>]*>\s*<a href="(/week/\d+)" data-task class="[^"]*" style="--fill: var\(--task-(\w+)\)">\s*<span[^>]*>([^<]+)</span>(?:\s*<span[^>]*>([^<]+)</span>)?`)
+	blockRe = regexp.MustCompile(`style="top: calc\(([\d.]+)% \+ 3px\); height: calc\(([\d.]+)% - 6px\); left: calc\(([\d.]+)% \+ (\d+)px \+ 3px\); width: calc\(([\d.]+)% - \d+px - 6px\)">\s*<div[^>]*>\s*<a href="(/week/\d+)" data-task class="[^"]*" style="--fill: var\(--task-(\w+)\)">\s*<span[^>]*>([^<]+)</span>(?:\s*<span[^>]*>([^<]+)</span>)?`)
 	hourRe  = regexp.MustCompile(`text-text-muted" style="top: [\d.]+%">(\d\d:00)</span>`)
 	nowRe   = regexp.MustCompile(`style="top: ([\d.]+)%" data-now="(\d+)"`)
 )
@@ -73,12 +73,12 @@ func TestWeek(t *testing.T) {
 		{"73.3333", "10.0000", "Gym", "18:00–19:30", "apricot"},
 	} {
 		b := mon[i]
-		if b[1] != want.top || b[2] != want.height || b[5] != want.name || b[6] != want.time || b[4] != want.color {
-			t.Errorf("monday block %d = top %s height %s %q %q %s; want %+v", i, b[1], b[2], b[5], b[6], b[4], want)
+		if b[1] != want.top || b[2] != want.height || b[8] != want.name || b[9] != want.time || b[7] != want.color {
+			t.Errorf("monday block %d = top %s height %s %q %q %s; want %+v", i, b[1], b[2], b[8], b[9], b[7], want)
 		}
 	}
-	if mon[1][3] != "/week/1" {
-		t.Errorf("work opens %s, want /week/1", mon[1][3])
+	if mon[1][6] != "/week/1" {
+		t.Errorf("work opens %s, want /week/1", mon[1][6])
 	}
 
 	// now: wednesday 18:45 = 78.3333% of 07–22, on one day only
@@ -131,5 +131,28 @@ func TestWeekForm(t *testing.T) {
 	page = body(t, get(h, "/week/1", in))
 	if !strings.Contains(page, `name="name" value="Gym"`) || !strings.Contains(page, `name="days-0" value="3" class="sr-only" checked`) {
 		t.Error("the block's form lacks the task")
+	}
+}
+
+// overlap on the page: the dentist sits inside work, 40px in; two at the same
+// time share the column.
+func TestWeekOverlap(t *testing.T) {
+	h, svc := testApp(t)
+	you, _ := svc.Users.Add(context.Background(), "You", "🦊")
+	wed := model.DaysOf(time.Wednesday)
+	weekly(t, svc, you.ID, "Dentist", "coral", wed, 11*60, 12*60)
+	weekly(t, svc, you.ID, "Work", "sky", wed, 9*60, 17*60)
+	weekly(t, svc, you.ID, "Gym", "apricot", wed, 18*60, 19*60)
+	weekly(t, svc, you.ID, "Call", "lime", wed, 18*60, 19*60)
+	page := body(t, get(h, "/week", &http.Cookie{Name: userCookieName, Value: "1"}))
+
+	var got []string
+	for _, b := range blockRe.FindAllStringSubmatch(page, -1) {
+		got = append(got, b[8]+" "+b[3]+"+"+b[5]+" "+b[4]+"px")
+	}
+	// drawn parents first: work, then the dentist over it
+	want := []string{"Work 0.0000+100.0000 0px", "Dentist 0.0000+100.0000 40px", "Gym 0.0000+50.0000 0px", "Call 50.0000+50.0000 0px"}
+	if strings.Join(got, ", ") != strings.Join(want, ", ") {
+		t.Errorf("blocks = %q\nwant      %q", got, want)
 	}
 }

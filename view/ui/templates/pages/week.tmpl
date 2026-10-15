@@ -1,6 +1,7 @@
 {{/* the week: day heads, then the timeline in its own scroller. hours fill
      the height when they fit (at least 36px each), else it scrolls. blocks sit
-     at their % of the hours, 3px in on every side. */}}
+     at their % of the hours and of the column (clock.Layout: side by side when
+     they clash), nested ones 40px further in, all 3px in on every side. */}}
 {{ define "content" }}
 <div class="flex h-full flex-col">
     {{ template "partials/header" (dict "Title" "Week" "Sub" .Sub "Prev" .Prev "Next" .Next "This" .This "New" "+ New task" "Href" "/week/new") }}
@@ -21,7 +22,7 @@
                     {{- range .Days }}
                     <div class="relative">
                         {{- range .Blocks }}
-                        <div class="absolute inset-x-[3px]" style="top: calc({{ .Top }}% + 3px); height: calc({{ .Height }}% - 6px)">
+                        <div class="absolute" style="top: calc({{ .Top }}% + 3px); height: calc({{ .Height }}% - 6px); left: calc({{ .Left }}% + {{ .Inset }}px + 3px); width: calc({{ .Width }}% - {{ .Inset }}px - 6px)">
                             {{- template "components/task_block" (dict "Name" .Name "Time" .Time "Color" .Color "Href" .Href) -}}
                         </div>
                         {{- end }}
