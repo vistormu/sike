@@ -1,6 +1,7 @@
-{{/* Href, Label, Color (its swatch), Count (empty hides it). Active: flat butter. */}}
+{{/* Href, Label, Color (its swatch), Count (empty hides it). Active: flat butter.
+     the border is always there (transparent when inactive), so nothing shifts. */}}
 {{ define "components/nav_item" -}}
-<a href="{{ .Href }}" class="{{ if .Active }}border-2 border-border bg-accent{{ end }} flex h-11 items-center gap-3 px-3 text-body text-text">
+<a href="{{ .Href }}" class="{{ if .Active }}border-border bg-accent{{ else }}border-transparent{{ end }} flex h-11 border-2 items-center gap-3 px-3 text-body text-text">
     {{- template "components/swatch" (dict "Color" .Color) }}
     <span class="min-w-0 flex-1 truncate">{{ .Label }}</span>
     {{- with .Count }}
