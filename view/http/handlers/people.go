@@ -74,8 +74,8 @@ func (h People) Create(w http.ResponseWriter, r *http.Request) {
 	name, emoji := r.FormValue("name"), r.FormValue("emoji")
 	u, err := h.Users.Add(r.Context(), name, emoji)
 	if errors.Is(err, model.ErrInvalid) {
-		h.R.RenderToast(w, "who_new", newPerson{Name: name, Emoji: emoji, Emojis: model.Emojis},
-			http.StatusUnprocessableEntity, Toast{Message: err.Error(), Error: true})
+		h.R.Render(w, "who_new", newPerson{Name: name, Emoji: emoji, Emojis: model.Emojis},
+			WithToast(http.StatusUnprocessableEntity, Toast{Message: err.Error(), Error: true}))
 		return
 	}
 	if err != nil {
@@ -121,7 +121,7 @@ func (h People) Require(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c, err := r.Cookie(userCookie)
 		if err != nil {
-			http.Redirect(w, r, "/who", http.StatusSeeOther)
+			redirect(w, r, "/who")
 			return
 		}
 		id, err := strconv.ParseInt(c.Value, 10, 64)
@@ -145,7 +145,7 @@ func (h People) Require(next http.Handler) http.Handler {
 // forget drops a cookie that names nobody and goes to the picker.
 func forget(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{Name: userCookie, Path: "/", MaxAge: -1})
-	http.Redirect(w, r, "/who", http.StatusSeeOther)
+	redirect(w, r, "/who")
 }
 
 type userKey struct{}

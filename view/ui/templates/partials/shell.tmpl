@@ -1,0 +1,27 @@
+{{/* the app frame: the sidebar from md up, the tab bar below it. the page's
+     "content" goes in the middle; it scrolls, the frame doesn't. */}}
+{{ define "partials/shell" -}}
+<div class="flex h-dvh">
+    <nav class="hidden w-58 shrink-0 flex-col gap-1 border-r-2 border-border px-4 pt-6 pb-4 md:flex" hx-boost="true">
+        <p class="pb-6 pl-3 text-title">sike</p>
+        {{- range .Shell.Tabs }}
+        {{ template "components/nav_item" (dict "Href" .Href "Label" .Label "Color" .Color "Active" .Active) }}
+        {{- end }}
+        <a href="/settings" class="mt-auto flex items-center justify-between pr-2 pl-3">
+            <span class="flex items-center gap-2"><span class="text-title">{{ .Shell.User.Emoji }}</span><span class="text-body">{{ .Shell.User.Name }}</span></span>
+            <span class="text-label text-text-muted uppercase">Settings</span>
+        </a>
+    </nav>
+    <div class="relative flex min-w-0 flex-1 flex-col">
+        <a href="/settings" class="absolute top-6 right-4 flex h-9 items-center text-title md:hidden" hx-boost="true">{{ .Shell.User.Emoji }}</a>
+        <main class="min-h-0 flex-1 overflow-y-auto">
+            {{ template "content" .Page }}
+        </main>
+        <nav class="flex gap-1 border-t-2 border-border bg-bg p-2 md:hidden" hx-boost="true">
+            {{- range .Shell.Tabs }}
+            {{ template "components/tab_item" (dict "Href" .Href "Label" .Label "Color" .Color "Active" .Active) }}
+            {{- end }}
+        </nav>
+    </div>
+</div>
+{{- end }}

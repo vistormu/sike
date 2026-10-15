@@ -22,8 +22,8 @@ var (
 	callRe   = regexp.MustCompile(`\{\{-?\s*(?:template|block)\s+"([^"]+)"`)
 	// a shared template named in go code: "layout", "components/x", "partials/y"
 	goNameRe = regexp.MustCompile(`"(layout|(?:components|partials)/[A-Za-z0-9_-]+)"`)
-	// a page rendered from go code: Render(w, "home", …), RenderToast(w, "who_new", …)
-	goPageRe = regexp.MustCompile(`\bRender(?:Toast)?\(\s*w,\s*"([A-Za-z0-9_-]+)"`)
+	// a page rendered from go code: Render(w, "who", …)
+	goPageRe = regexp.MustCompile(`\bRender\(\s*w,\s*"([A-Za-z0-9_-]+)"`)
 )
 
 // goSourceDirs are where go code names templates, relative to this package.

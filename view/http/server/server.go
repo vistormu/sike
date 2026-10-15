@@ -37,7 +37,11 @@ func New(cfg Config) (*Server, error) {
 	mux := http.NewServeMux()
 	mux.Handle("GET /static/", noListing(http.StripPrefix("/static/", http.FileServerFS(ui.Static()))))
 	people := handlers.People{R: rd, Users: cfg.Users}
-	mux.Handle("GET /{$}", people.Require(http.HandlerFunc(s.home)))
+	mux.Handle("GET /{$}", http.RedirectHandler("/week", http.StatusSeeOther))
+	t := handlers.Tabs{R: rd}
+	for _, name := range []string{"week", "upcoming", "pending", "someday", "settings"} {
+		mux.Handle("GET /"+name, people.Require(t.Tab(name)))
+	}
 	mux.HandleFunc("GET /who", people.Who)
 	mux.HandleFunc("GET /who/new", people.New)
 	mux.HandleFunc("POST /who/new", people.Create)
@@ -87,8 +91,4 @@ func noListing(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
-}
-
-func (s *Server) home(w http.ResponseWriter, r *http.Request) {
-	s.rd.Render(w, "home", handlers.UserFrom(r.Context()))
 }

@@ -6,11 +6,11 @@ import (
 	"io/fs"
 )
 
-//go:embed templates/*.tmpl templates/pages/*.tmpl templates/components/*.tmpl static
+//go:embed templates/*.tmpl templates/pages/*.tmpl templates/components/*.tmpl templates/partials/*.tmpl static
 var files embed.FS
 
-// Templates is the templates/ tree: layout.tmpl at the root, pages/ and
-// components/ below.
+// Templates is the templates/ tree: layout.tmpl at the root, pages/,
+// components/ and partials/ below.
 func Templates() fs.FS { return sub("templates") }
 
 // Static is the static/ tree, served under /static/.

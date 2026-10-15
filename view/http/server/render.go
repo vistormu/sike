@@ -23,7 +23,7 @@ type renderer struct {
 
 func newRenderer() (*renderer, error) {
 	tmplFS := ui.Templates()
-	base, err := template.New("").Funcs(funcMap()).ParseFS(tmplFS, "layout.tmpl", "components/*.tmpl")
+	base, err := template.New("").Funcs(funcMap()).ParseFS(tmplFS, "layout.tmpl", "components/*.tmpl", "partials/*.tmpl")
 	if err != nil {
 		return nil, err
 	}
@@ -51,25 +51,20 @@ func newRenderer() (*renderer, error) {
 	return &renderer{pages: pages}, nil
 }
 
-// root is what the layout sees: the page's own data, and an optional toast.
+// root is what the layout sees: the page's own data, plus the view (shell,
+// toast).
 type root struct {
-	Page  any
-	Toast *handlers.Toast
+	Page any
+	handlers.View
 }
 
-// Render writes a page through the layout.
-func (rd *renderer) Render(w http.ResponseWriter, page string, data any) {
-	rd.render(w, page, root{Page: data}, http.StatusOK)
-}
-
-// RenderToast writes a page with a status and the floating toast.
-func (rd *renderer) RenderToast(w http.ResponseWriter, page string, data any, status int, t handlers.Toast) {
-	rd.render(w, page, root{Page: data, Toast: &t}, status)
-}
-
-// render renders into a buffer first, so a template error is a clean 500
-// instead of half a page.
-func (rd *renderer) render(w http.ResponseWriter, page string, data root, status int) {
+// Render writes a page through the layout. it renders into a buffer first, so
+// a template error is a clean 500 instead of half a page.
+func (rd *renderer) Render(w http.ResponseWriter, page string, data any, opts ...handlers.Option) {
+	v := handlers.View{Status: http.StatusOK}
+	for _, o := range opts {
+		o(&v)
+	}
 	set, ok := rd.pages[page]
 	if !ok {
 		log.Printf("render: unknown page %q", page)
@@ -77,13 +72,13 @@ func (rd *renderer) render(w http.ResponseWriter, page string, data root, status
 		return
 	}
 	var buf bytes.Buffer
-	if err := set.ExecuteTemplate(&buf, "layout", data); err != nil {
+	if err := set.ExecuteTemplate(&buf, "layout", root{Page: data, View: v}); err != nil {
 		log.Printf("render %s: %v", page, err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(status)
+	w.WriteHeader(v.Status)
 	_, _ = buf.WriteTo(w)
 }
 

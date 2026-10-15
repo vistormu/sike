@@ -76,7 +76,7 @@ func TestPickSetsTheCookie(t *testing.T) {
 		t.Fatalf("pick set %+v, want one http-only %s=1", cookies, userCookieName)
 	}
 
-	home := get(h, "/", cookies[0])
+	home := get(h, "/week", cookies[0])
 	if home.StatusCode != 200 {
 		t.Fatalf("home with the cookie: %d, want 200", home.StatusCode)
 	}
@@ -116,9 +116,9 @@ func TestRequireSendsToThePicker(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var res *http.Response
 			if tt.cookie == nil {
-				res = get(h, "/")
+				res = get(h, "/week")
 			} else {
-				res = get(h, "/", tt.cookie)
+				res = get(h, "/week", tt.cookie)
 			}
 			if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/who" {
 				t.Fatalf("%d to %q, want 303 to /who", res.StatusCode, res.Header.Get("Location"))
