@@ -20,6 +20,7 @@ type TaskForm struct {
 
 type taskForm struct {
 	Action, Close string
+	Delete        string // the delete url; "" for a new task
 	Name, Color   string
 	When          model.When
 	Areas         []model.Area
@@ -121,6 +122,49 @@ func (h TaskForm) Update(tab string, page Page) http.HandlerFunc {
 	}
 }
 
+// Delete deletes the task (done) and opens the tab with the undo toast.
+func (h TaskForm) Delete(tab string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		err = h.Tasks.Remove(r.Context(), UserFrom(r.Context()).ID, id)
+		if errors.Is(err, model.ErrNotFound) {
+			http.NotFound(w, r)
+			return
+		}
+		if err != nil {
+			serverError(w, err)
+			return
+		}
+		http.Redirect(w, r, "/"+tab+"?deleted="+r.PathValue("id"), http.StatusSeeOther)
+	}
+}
+
+// Restore undoes the delete. too late (a later delete erased it): the tab says
+// so in an error toast.
+func (h TaskForm) Restore(tab string, page Page) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		err = h.Tasks.Restore(r.Context(), UserFrom(r.Context()).ID, id)
+		if errors.Is(err, model.ErrNotFound) {
+			page(w, r, WithToast(http.StatusConflict, Toast{Message: "Too late to undo", Error: true}))
+			return
+		}
+		if err != nil {
+			serverError(w, err)
+			return
+		}
+		http.Redirect(w, r, "/"+tab, http.StatusSeeOther)
+	}
+}
+
 // retry shows the form again as it was typed, with why it failed.
 func (h TaskForm) retry(w http.ResponseWriter, r *http.Request, tab, path string, page Page, reason error) {
 	f, err := h.form(r, tab, path, r.FormValue("name"), r.FormValue("area"), model.When(r.FormValue("when")))
@@ -138,6 +182,9 @@ func (h TaskForm) form(r *http.Request, tab, path, name, color string, when mode
 		return taskForm{}, err
 	}
 	f := taskForm{Action: "/" + tab + "/" + path, Close: "/" + tab, Name: name, Color: color, When: when, Areas: areas}
+	if path != "new" {
+		f.Delete = f.Action + "/delete"
+	}
 	for _, w := range h.Tasks.Whens() {
 		f.Whens = append(f.Whens, whenOption{Value: w, Label: whenLabels[w]})
 	}

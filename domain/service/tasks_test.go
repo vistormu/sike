@@ -24,6 +24,10 @@ func (f *fakeTasks) GetTask(context.Context, int64, int64) (model.Task, error) {
 	return model.Task{}, nil
 }
 func (f *fakeTasks) DeleteTask(context.Context, int64, int64) error { return nil }
+func (f *fakeTasks) GetDeletedTask(context.Context, int64, int64) (model.Task, error) {
+	return model.Task{}, nil
+}
+func (f *fakeTasks) RestoreTask(context.Context, int64, int64) error { return nil }
 func (f *fakeTasks) UpdateTask(_ context.Context, t model.Task) (model.Task, error) {
 	f.updated = append(f.updated, t)
 	return t, nil

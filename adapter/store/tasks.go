@@ -12,7 +12,7 @@ import (
 )
 
 // top is the position above every task of a person in one place in time.
-const top = `(SELECT COALESCE(MIN(position), 0) - 1 FROM tasks WHERE user_id = :user_id AND "when" = :when)`
+const top = `(SELECT COALESCE(MIN(position), 0) - 1 FROM tasks WHERE user_id = :user_id AND "when" = :when AND NOT deleted)`
 
 func (s *Store) CreateTask(ctx context.Context, t model.Task) (model.Task, error) {
 	res, err := s.db.NamedExecContext(ctx,
@@ -30,7 +30,7 @@ func (s *Store) CreateTask(ctx context.Context, t model.Task) (model.Task, error
 func (s *Store) ListTasks(ctx context.Context, userID int64) ([]model.Task, error) {
 	tasks := []model.Task{}
 	err := s.db.SelectContext(ctx, &tasks,
-		`SELECT id, user_id, name, color, "when", position FROM tasks WHERE user_id = ?`, userID)
+		`SELECT id, user_id, name, color, "when", position FROM tasks WHERE user_id = ? AND NOT deleted`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -46,17 +46,49 @@ func (s *Store) ListTasks(ctx context.Context, userID int64) ([]model.Task, erro
 }
 
 func (s *Store) GetTask(ctx context.Context, userID, id int64) (model.Task, error) {
+	return s.getTask(ctx, userID, id, false)
+}
+
+// GetDeletedTask is a task waiting for its undo.
+func (s *Store) GetDeletedTask(ctx context.Context, userID, id int64) (model.Task, error) {
+	return s.getTask(ctx, userID, id, true)
+}
+
+func (s *Store) getTask(ctx context.Context, userID, id int64, deleted bool) (model.Task, error) {
 	var t model.Task
 	err := s.db.GetContext(ctx, &t,
-		`SELECT id, user_id, name, color, "when", position FROM tasks WHERE user_id = ? AND id = ?`, userID, id)
+		`SELECT id, user_id, name, color, "when", position FROM tasks WHERE user_id = ? AND id = ? AND deleted = ?`, userID, id, deleted)
 	if errors.Is(err, sql.ErrNoRows) {
 		return model.Task{}, fmt.Errorf("task %d: %w", id, model.ErrNotFound)
 	}
 	return t, err
 }
 
+// DeleteTask hides a task until its undo, and erases for good the person's
+// delete before it: only the last one can be undone.
 func (s *Store) DeleteTask(ctx context.Context, userID, id int64) error {
-	res, err := s.db.ExecContext(ctx, `DELETE FROM tasks WHERE user_id = ? AND id = ?`, userID, id)
+	tx, err := s.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, `DELETE FROM tasks WHERE user_id = ? AND deleted`, userID); err != nil {
+		return err
+	}
+	res, err := tx.ExecContext(ctx, `UPDATE tasks SET deleted = 1 WHERE user_id = ? AND id = ? AND NOT deleted`, userID, id)
+	if err != nil {
+		return err
+	}
+	if err := oneRow(res, "task", id); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// RestoreTask undoes the delete of a task, back in its place. ErrNotFound once
+// a later delete erased it.
+func (s *Store) RestoreTask(ctx context.Context, userID, id int64) error {
+	res, err := s.db.ExecContext(ctx, `UPDATE tasks SET deleted = 0 WHERE user_id = ? AND id = ? AND deleted`, userID, id)
 	if err != nil {
 		return err
 	}
@@ -65,7 +97,7 @@ func (s *Store) DeleteTask(ctx context.Context, userID, id int64) error {
 
 func (s *Store) MoveTask(ctx context.Context, userID, id int64, when model.When) error {
 	res, err := s.db.NamedExecContext(ctx,
-		`UPDATE tasks SET "when" = :when, position = `+top+` WHERE user_id = :user_id AND id = :id`,
+		`UPDATE tasks SET "when" = :when, position = `+top+` WHERE user_id = :user_id AND id = :id AND NOT deleted`,
 		map[string]any{"user_id": userID, "id": id, "when": when})
 	if err != nil {
 		return err
@@ -80,7 +112,7 @@ func (s *Store) UpdateTask(ctx context.Context, t model.Task) (model.Task, error
 	res, err := s.db.NamedExecContext(ctx,
 		`UPDATE tasks SET name = :name, color = :color,
 			position = CASE WHEN "when" = :when THEN position ELSE `+top+` END, "when" = :when
-		WHERE user_id = :user_id AND id = :id`, t)
+		WHERE user_id = :user_id AND id = :id AND NOT deleted`, t)
 	if err != nil {
 		return model.Task{}, err
 	}

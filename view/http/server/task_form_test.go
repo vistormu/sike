@@ -220,3 +220,59 @@ func TestUpdateTask(t *testing.T) {
 		t.Errorf("update a missing task: %d, want 404", res.StatusCode)
 	}
 }
+
+func TestDeleteAndUndo(t *testing.T) {
+	h, svc := testApp(t)
+	ctx := context.Background()
+	you, _ := svc.Users.Add(ctx, "You", "🦊")
+	for _, name := range []string{"Fix bike", "Call the bank"} {
+		if _, err := svc.Tasks.Add(ctx, you.ID, name, "mint", model.Pending); err != nil {
+			t.Fatal(err)
+		}
+	}
+	in := &http.Cookie{Name: userCookieName, Value: "1"}
+
+	// a new task has no delete; an existing one does, posting to its own url
+	if page := body(t, get(h, "/pending/new", in)); strings.Contains(page, "Delete task") {
+		t.Error("the new task form offers a delete")
+	}
+	if page := body(t, get(h, "/pending/1", in)); !strings.Contains(page, `formaction="/pending/1/delete"`) {
+		t.Error("the edit form has no delete")
+	}
+
+	res := postAs(h, "/pending/1/delete", nil, in)
+	if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/pending?deleted=1" {
+		t.Fatalf("delete: %d to %q, want 303 to /pending?deleted=1", res.StatusCode, res.Header.Get("Location"))
+	}
+	page := body(t, get(h, "/pending?deleted=1", in))
+	for _, want := range []string{"Deleted “Fix bike”", `action="/pending/1/restore"`, `role="status" data-undo`} {
+		if !strings.Contains(page, html.EscapeString(want)) && !strings.Contains(page, want) {
+			t.Errorf("the tab after a delete lacks %q", want)
+		}
+	}
+	if rowRe.FindAllString(page, -1) == nil || strings.Contains(page, `href="/pending/1"`) {
+		t.Error("the deleted task is still listed")
+	}
+	if page := body(t, get(h, "/pending?deleted=2", in)); strings.Contains(page, `role="status"`) {
+		t.Error("an undo toast for a task that is not deleted")
+	}
+
+	res = postAs(h, "/pending/1/restore", nil, in)
+	if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/pending" {
+		t.Fatalf("undo: %d to %q, want 303 to /pending", res.StatusCode, res.Header.Get("Location"))
+	}
+	if tasks, _ := svc.Tasks.List(ctx, you.ID); len(tasks) != 2 {
+		t.Errorf("%d tasks after undo, want 2", len(tasks))
+	}
+
+	// too late: a later delete erased the first
+	postAs(h, "/pending/1/delete", nil, in)
+	postAs(h, "/pending/2/delete", nil, in)
+	res = postAs(h, "/pending/1/restore", nil, in)
+	if res.StatusCode != http.StatusConflict || !strings.Contains(body(t, res), "Too late to undo") {
+		t.Errorf("a late undo: %d, want 409 with an error toast", res.StatusCode)
+	}
+	if res := postAs(h, "/pending/9/delete", nil, in); res.StatusCode != http.StatusNotFound {
+		t.Errorf("delete a missing task: %d, want 404", res.StatusCode)
+	}
+}

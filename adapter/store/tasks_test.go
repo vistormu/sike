@@ -143,3 +143,57 @@ func TestUpdateTask(t *testing.T) {
 		t.Errorf("update another's task: err = %v, want ErrNotFound", err)
 	}
 }
+
+func TestDeleteThenRestore(t *testing.T) {
+	ctx := context.Background()
+	s := New(testDB(t))
+	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"}, model.DefaultAreas)
+	a := newTask(t, s, u.ID, "a", "sky", model.Pending)
+	b := newTask(t, s, u.ID, "b", "sky", model.Pending)
+	newTask(t, s, u.ID, "c", "sky", model.Pending)
+
+	if err := s.DeleteTask(ctx, u.ID, b.ID); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := s.ListTasks(ctx, u.ID); !slices.Equal(taskNames(got), []string{"c", "a"}) {
+		t.Errorf("after delete: %q, want c, a", taskNames(got))
+	}
+	if _, err := s.GetTask(ctx, u.ID, b.ID); !errors.Is(err, model.ErrNotFound) {
+		t.Errorf("get a deleted task: err = %v, want ErrNotFound", err)
+	}
+	if d, err := s.GetDeletedTask(ctx, u.ID, b.ID); err != nil || d.Name != "b" {
+		t.Errorf("the deleted task: %+v, %v", d, err)
+	}
+	if err := s.DeleteTask(ctx, u.ID, b.ID); !errors.Is(err, model.ErrNotFound) {
+		t.Errorf("delete twice: err = %v, want ErrNotFound", err)
+	}
+	// undo: back in its place
+	if err := s.RestoreTask(ctx, u.ID, b.ID); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := s.ListTasks(ctx, u.ID); !slices.Equal(taskNames(got), []string{"c", "b", "a"}) {
+		t.Errorf("after undo: %q, want c, b, a", taskNames(got))
+	}
+	if err := s.RestoreTask(ctx, u.ID, b.ID); !errors.Is(err, model.ErrNotFound) {
+		t.Errorf("restore a live task: err = %v, want ErrNotFound", err)
+	}
+	// only the last delete waits: the next one erases it for good
+	if err := s.DeleteTask(ctx, u.ID, a.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.DeleteTask(ctx, u.ID, b.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.RestoreTask(ctx, u.ID, a.ID); !errors.Is(err, model.ErrNotFound) {
+		t.Errorf("restore an older delete: err = %v, want ErrNotFound", err)
+	}
+	var rows int
+	if err := s.db.GetContext(ctx, &rows, `SELECT COUNT(*) FROM tasks`); err != nil || rows != 2 {
+		t.Errorf("%d rows, want 2: c, and b waiting for its undo", rows)
+	}
+	// someone else's undo: not found
+	them, _ := s.CreateUser(ctx, model.User{Name: "Partner", Emoji: "🐼"}, model.DefaultAreas)
+	if err := s.RestoreTask(ctx, them.ID, b.ID); !errors.Is(err, model.ErrNotFound) {
+		t.Errorf("restore another's task: err = %v, want ErrNotFound", err)
+	}
+}

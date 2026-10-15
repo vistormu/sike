@@ -15,7 +15,8 @@
     {{ template "partials/task_form" . }}
     {{- end }}
     {{- with .Toast }}
-    <div class="fixed inset-x-4 bottom-4 mx-auto max-w-[358px]">{{ template "components/toast" . }}</div>
+    {{/* on the phone, 16px above the tab bar when there is one */}}
+    <div class="fixed inset-x-4 bottom-4 mx-auto max-w-[358px]{{ if and $.Shell (not $.Form) }} max-md:bottom-[86px]{{ end }}">{{ template "components/toast" . }}</div>
     {{- end }}
 </body>
 </html>

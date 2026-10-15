@@ -1,6 +1,7 @@
 {{/* a tab's header: Title over the 2px rule. New (the "+" label) and Href
      open the task form: a button here on desktop, the FAB above the tab bar
-     on the phone; no New, no "+". the phone's profile emoji is the shell's. */}}
+     on the phone, hidden while the undo toast shows; no New, no "+". the
+     phone's profile emoji is the shell's. */}}
 {{ define "partials/header" -}}
 <header class="flex items-center justify-between border-b-2 border-border px-4 pt-6 pb-4 md:pr-6 md:pl-8">
     <h1 class="text-display">{{ .Title }}</h1>
@@ -9,6 +10,6 @@
     {{- end }}
 </header>
 {{- if .New }}
-<span class="fixed right-4 bottom-[86px] md:hidden">{{ template "components/button" (dict "Glyph" "+" "Href" .Href "Fab" true) }}</span>
+<span class="fixed right-4 bottom-[86px] md:hidden [body:has([data-undo])_&]:hidden">{{ template "components/button" (dict "Glyph" "+" "Href" .Href "Fab" true) }}</span>
 {{- end }}
 {{- end }}

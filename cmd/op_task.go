@@ -84,7 +84,7 @@ func opTaskCmd() *cobra.Command {
 
 	rm := &cobra.Command{
 		Use:   "rm <user-id> <task-id>",
-		Short: "delete a task: it is done",
+		Short: "delete a task: it is done (restore undoes the last one)",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			userID, id, err := parseIDs(args[0], args[1])
@@ -97,6 +97,24 @@ func opTaskCmd() *cobra.Command {
 			}
 			defer done()
 			return svc.tasks.Remove(cmd.Context(), userID, id)
+		},
+	}
+
+	restore := &cobra.Command{
+		Use:   "restore <user-id> <task-id>",
+		Short: "undo a delete: only a person's last one can be undone",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			userID, id, err := parseIDs(args[0], args[1])
+			if err != nil {
+				return err
+			}
+			svc, done, err := taskServices(cmd)
+			if err != nil {
+				return err
+			}
+			defer done()
+			return svc.tasks.Restore(cmd.Context(), userID, id)
 		},
 	}
 
@@ -164,7 +182,7 @@ func opTaskCmd() *cobra.Command {
 	edit.Flags().StringVar(&editWhen, "when", "", "pending or someday")
 	edit.MarkFlagsOneRequired("name", "area", "when")
 
-	task.AddCommand(add, list, edit, rm, move)
+	task.AddCommand(add, list, edit, rm, restore, move)
 	return task
 }
 

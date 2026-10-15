@@ -43,6 +43,7 @@ dev pages: `/dev/components` shows every component variant (compare with figma),
 | `sike op task list <user-id>` | a person's tasks, in tab order |
 | `sike op task edit <user-id> <task-id> [--name] [--area] [--when]` | change a task; a new when puts it on top there |
 | `sike op task rm <user-id> <task-id>` | delete a task: done |
+| `sike op task restore <user-id> <task-id>` | undo a delete (only a person's last one) |
 | `sike op task move <user-id> <task-id> <when>` | move a task to pending or someday, on top |
 
 ## env

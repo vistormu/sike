@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -68,6 +69,8 @@ var tabOf = map[model.When]string{model.Weekly: "week", model.Dated: "upcoming",
 // countedTabs: the tabs whose sidebar item shows how many tasks they hold.
 var countedTabs = map[model.When]string{model.Pending: "pending", model.Someday: "someday"}
 
+// Shell also brings the undo toast after a delete: the tab opens with
+// ?deleted=<id> while that task can still be undone.
 func (f Frame) Shell(r *http.Request, tab string) (Option, error) {
 	u := UserFrom(r.Context())
 	tasks, err := f.Tasks.List(r.Context(), u.ID)
@@ -80,14 +83,28 @@ func (f Frame) Shell(r *http.Request, tab string) (Option, error) {
 			counts[name]++
 		}
 	}
-	return WithShell(u, tab, counts), nil
+	shell := WithShell(u, tab, counts)
+	id, err := strconv.ParseInt(r.URL.Query().Get("deleted"), 10, 64)
+	if err != nil {
+		return shell, nil
+	}
+	d, err := f.Tasks.Deleted(r.Context(), u.ID, id)
+	if errors.Is(err, model.ErrNotFound) {
+		return shell, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	undo := Toast{Message: "Deleted “" + d.Name + "”", Undo: "/" + tab + "/" + strconv.FormatInt(id, 10) + "/restore"}
+	return func(v *View) { shell(v); v.Toast = &undo }, nil
 }
 
-// Toast is the one message component: Info, or Error. Action shows Undo.
+// Toast is the one message component: Info, or Error. Undo, the url that
+// restores a deleted task, shows the Undo button.
 type Toast struct {
 	Message string
 	Error   bool
-	Action  bool
+	Undo    string
 }
 
 // Shell is the app frame around a tab: who is in, and the four tabs.

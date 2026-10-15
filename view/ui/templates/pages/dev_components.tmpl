@@ -16,6 +16,7 @@
         <div class="flex items-center gap-4 p-4">
             {{ template "components/button" (dict "Label" "Today" "Primary" true) }}
             {{ template "components/button" (dict "Label" "Today") }}
+            {{ template "components/button" (dict "Label" "Delete task" "Danger" true) }}
             {{ template "components/button" (dict "Glyph" "+" "Primary" true) }}
             {{ template "components/button" (dict "Glyph" "+") }}
             {{ template "components/button" (dict "Glyph" "+" "Fab" true) }}
@@ -143,8 +144,8 @@
     <section class="flex flex-col gap-2">
         <h2 class="text-title">Toast</h2>
         <div class="flex w-[358px] flex-col gap-4 p-4 box-content">
-            {{ template "components/toast" (dict "Message" "Deleted “Fix bike”" "Action" true) }}
-            {{ template "components/toast" (dict "Message" "Deleted “Fix bike”" "Error" true "Action" true) }}
+            {{ template "components/toast" (dict "Message" "Deleted “Fix bike”" "Undo" "#") }}
+            {{ template "components/toast" (dict "Message" "Deleted “Fix bike”" "Error" true "Undo" "#") }}
             {{ template "components/toast" (dict "Message" "“You” is already taken" "Error" true) }}
         </div>
     </section>

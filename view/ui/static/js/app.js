@@ -15,3 +15,11 @@ document.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") document.querySelector("[data-task][data-selected]")?.removeAttribute("data-selected");
 });
+
+// the undo toast after a delete: it goes after ~5 s (the + comes back with
+// it, css), and the url forgets ?deleted= so a reload or back shows no undo.
+const undo = document.querySelector("[data-undo]");
+if (undo) {
+  history.replaceState(null, "", location.pathname);
+  setTimeout(() => undo.parentElement.remove(), 5000);
+}

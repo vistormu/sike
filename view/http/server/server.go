@@ -55,6 +55,8 @@ func New(cfg Config) (*Server, error) {
 		mux.Handle("POST /"+tab+"/new", people.Require(form.Create(tab, page)))
 		mux.Handle("GET /"+tab+"/{id}", people.Require(form.Edit(tab, page)))
 		mux.Handle("POST /"+tab+"/{id}", people.Require(form.Update(tab, page)))
+		mux.Handle("POST /"+tab+"/{id}/delete", people.Require(form.Delete(tab)))
+		mux.Handle("POST /"+tab+"/{id}/restore", people.Require(form.Restore(tab, page)))
 	}
 	mux.HandleFunc("GET /who", people.Who)
 	mux.HandleFunc("GET /who/new", people.New)

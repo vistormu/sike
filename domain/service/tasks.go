@@ -14,6 +14,8 @@ type TaskStore interface {
 	ListTasks(ctx context.Context, userID int64) ([]model.Task, error)
 	GetTask(ctx context.Context, userID, id int64) (model.Task, error)
 	DeleteTask(ctx context.Context, userID, id int64) error
+	GetDeletedTask(ctx context.Context, userID, id int64) (model.Task, error)
+	RestoreTask(ctx context.Context, userID, id int64) error
 	MoveTask(ctx context.Context, userID, id int64, when model.When) error
 	UpdateTask(ctx context.Context, t model.Task) (model.Task, error)
 }
@@ -78,9 +80,20 @@ func (s *Tasks) Get(ctx context.Context, userID, id int64) (model.Task, error) {
 	return s.store.GetTask(ctx, userID, id)
 }
 
-// Remove deletes a task: done (decisions/0001).
+// Remove deletes a task: done (decisions/0001). it can be undone until the
+// person's next delete.
 func (s *Tasks) Remove(ctx context.Context, userID, id int64) error {
 	return s.store.DeleteTask(ctx, userID, id)
+}
+
+// Deleted is a removed task that can still be undone.
+func (s *Tasks) Deleted(ctx context.Context, userID, id int64) (model.Task, error) {
+	return s.store.GetDeletedTask(ctx, userID, id)
+}
+
+// Restore undoes Remove: the task is back where it was.
+func (s *Tasks) Restore(ctx context.Context, userID, id int64) error {
+	return s.store.RestoreTask(ctx, userID, id)
 }
 
 // Move puts a task in another place in time, on top there.

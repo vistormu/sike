@@ -31,7 +31,15 @@
                     {{- end }}
                 </div>
             </fieldset>
-            <div class="mt-auto hidden justify-end md:flex">
+            {{- with .Delete }}
+            <div class="mt-auto flex justify-center md:hidden">
+                {{ template "components/button" (dict "Label" "Delete task" "Danger" true "FormAction" .) }}
+            </div>
+            {{- end }}
+            <div class="mt-auto hidden items-center justify-end md:flex">
+                {{- with .Delete }}
+                <span class="mr-auto">{{ template "components/button" (dict "Label" "Delete task" "Danger" true "FormAction" .) }}</span>
+                {{- end }}
                 {{ template "components/button" (dict "Label" "Save" "Primary" true "Submit" true) }}
             </div>
         </div>
