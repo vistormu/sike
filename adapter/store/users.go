@@ -9,16 +9,31 @@ import (
 	"sike/domain/model"
 )
 
-func (s *Store) CreateUser(ctx context.Context, u model.User) (model.User, error) {
-	res, err := s.db.NamedExecContext(ctx, `INSERT INTO users (name, emoji) VALUES (:name, :emoji)`, u)
+// CreateUser creates a person and their areas, together or not at all.
+func (s *Store) CreateUser(ctx context.Context, u model.User, areas []model.Area) (model.User, error) {
+	tx, err := s.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return model.User{}, err
+	}
+	defer tx.Rollback()
+
+	res, err := tx.NamedExecContext(ctx, `INSERT INTO users (name, emoji) VALUES (:name, :emoji)`, u)
 	if isUnique(err) {
 		return model.User{}, fmt.Errorf("%w: %q", model.ErrTaken, u.Name)
 	}
 	if err != nil {
 		return model.User{}, err
 	}
-	u.ID, err = res.LastInsertId()
-	return u, err
+	if u.ID, err = res.LastInsertId(); err != nil {
+		return model.User{}, err
+	}
+	for _, a := range areas {
+		a.UserID = u.ID
+		if _, err := tx.NamedExecContext(ctx, `INSERT INTO areas (user_id, color, name) VALUES (:user_id, :color, :name)`, a); err != nil {
+			return model.User{}, err
+		}
+	}
+	return u, tx.Commit()
 }
 
 func (s *Store) ListUsers(ctx context.Context) ([]model.User, error) {

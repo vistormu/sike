@@ -12,11 +12,11 @@ func TestUsers(t *testing.T) {
 	ctx := context.Background()
 	s := New(testDB(t))
 
-	fox, err := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"})
+	fox, err := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"}, nil)
 	if err != nil {
 		t.Fatalf("CreateUser: %v", err)
 	}
-	panda, err := s.CreateUser(ctx, model.User{Name: "Partner", Emoji: "🐼"})
+	panda, err := s.CreateUser(ctx, model.User{Name: "Partner", Emoji: "🐼"}, nil)
 	if err != nil {
 		t.Fatalf("CreateUser: %v", err)
 	}
@@ -24,7 +24,7 @@ func TestUsers(t *testing.T) {
 		t.Fatalf("ids = %d, %d: want two distinct ids", fox.ID, panda.ID)
 	}
 
-	if _, err := s.CreateUser(ctx, model.User{Name: "you", Emoji: "🐸"}); !errors.Is(err, model.ErrTaken) {
+	if _, err := s.CreateUser(ctx, model.User{Name: "you", Emoji: "🐸"}, nil); !errors.Is(err, model.ErrTaken) {
 		t.Errorf("same name, other case: err = %v, want ErrTaken", err)
 	}
 

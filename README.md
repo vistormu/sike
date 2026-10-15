@@ -34,6 +34,8 @@ without node; only the css recipes need node + npm (they run `npm ci` themselves
 | `sike op user add <name> <emoji>` | add a person (the emoji is one of the 30 animals) |
 | `sike op user list` | list people, oldest first |
 | `sike op user rm <id> [-y]` | delete a person and everything theirs (asks first) |
+| `sike op area list <user-id>` | a person's seven areas (color, name) |
+| `sike op area rename <user-id> <color> <name>` | rename one of them |
 
 ## env
 

@@ -15,7 +15,7 @@ func opCmd() *cobra.Command {
 		Use:   "op",
 		Short: "operate on the data from the terminal",
 	}
-	op.AddCommand(opUserCmd())
+	op.AddCommand(opUserCmd(), opAreaCmd())
 	return op
 }
 

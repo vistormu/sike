@@ -12,7 +12,8 @@ import (
 )
 
 type UserStore interface {
-	CreateUser(ctx context.Context, u model.User) (model.User, error)
+	// CreateUser creates the person with their areas, atomically.
+	CreateUser(ctx context.Context, u model.User, areas []model.Area) (model.User, error)
 	ListUsers(ctx context.Context) ([]model.User, error)
 	GetUser(ctx context.Context, id int64) (model.User, error)
 	DeleteUser(ctx context.Context, id int64) error
@@ -28,8 +29,8 @@ func NewUsers(store UserStore) *Users {
 
 const maxName = 40
 
-// Add validates and creates a user. names are unique, ignoring case; the emoji
-// is one of model.Emojis.
+// Add validates and creates a user, with the default areas. names are unique,
+// ignoring case; the emoji is one of model.Emojis.
 func (s *Users) Add(ctx context.Context, name, emoji string) (model.User, error) {
 	name, emoji = strings.TrimSpace(name), strings.TrimSpace(emoji)
 	switch {
@@ -40,7 +41,7 @@ func (s *Users) Add(ctx context.Context, name, emoji string) (model.User, error)
 	case !model.IsEmoji(emoji):
 		return model.User{}, model.Invalid("Pick one of %s", strings.Join(model.Emojis, " "))
 	}
-	u, err := s.store.CreateUser(ctx, model.User{Name: name, Emoji: emoji})
+	u, err := s.store.CreateUser(ctx, model.User{Name: name, Emoji: emoji}, model.DefaultAreas)
 	if errors.Is(err, model.ErrTaken) {
 		return model.User{}, model.Invalid("“%s” is already taken", name)
 	}

@@ -13,7 +13,7 @@ import (
 // the real store, a name already there (any case) is ErrTaken.
 type fakeUsers struct{ created []model.User }
 
-func (f *fakeUsers) CreateUser(_ context.Context, u model.User) (model.User, error) {
+func (f *fakeUsers) CreateUser(_ context.Context, u model.User, _ []model.Area) (model.User, error) {
 	for _, c := range f.created {
 		if strings.EqualFold(c.Name, u.Name) {
 			return model.User{}, model.ErrTaken
