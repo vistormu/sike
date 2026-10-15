@@ -115,3 +115,8 @@ func isUnique(err error) bool {
 	var se *sqlite.Error
 	return errors.As(err, &se) && se.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE
 }
+
+func isForeignKey(err error) bool {
+	var se *sqlite.Error
+	return errors.As(err, &se) && se.Code() == sqlite3.SQLITE_CONSTRAINT_FOREIGNKEY
+}

@@ -49,6 +49,9 @@ dev pages: `/dev/components` shows every component variant (compare with figma),
 | `sike op placement add <user-id> <task-id> <days> <start-end> [--notify-start] [--notify-end]` | add a time: `mon,wed 18:00-19:30`, `mon-fri 09:00-17:00` |
 | `sike op placement rm <user-id> <placement-id>` | remove a time (not a task's last one) |
 | `sike op week show <user-id> [--date YYYY-MM-DD]` | a person's week (today's by default): days, hours, what repeats, what is dated |
+| `sike op mood show <user-id> [--date YYYY-MM-DD]` | a person's mood today (or on that day) |
+| `sike op mood set <user-id> <1-5 \| face> [--date YYYY-MM-DD]` | give the day its mood: `4` or `🙂` |
+| `sike op mood clear <user-id> [--date YYYY-MM-DD]` | take the day's mood away |
 
 ## env
 

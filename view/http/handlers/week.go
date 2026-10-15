@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,11 +17,13 @@ import (
 // seven-day timeline, what has no hours (all day, due, a stretch) as chips in
 // the lane under the day heads; it opens on this week (?date= shows the week
 // of that day). the phone shows one day of it, today's or ?date='s, and
-// app.js moves between them.
+// app.js moves between them. today's mood is in the header (desktop) or under
+// the day picker (phone).
 type Week struct {
 	R     Renderer
 	Frame Frame
 	Tasks *service.Tasks
+	Moods *service.Moods
 	Loc   *time.Location   // SIKE_TZ: every time is wall-clock here
 	Now   func() time.Time // the clock, so tests can stop it
 }
@@ -32,6 +36,13 @@ type weekPage struct {
 	Hours            []hourLine
 	From, Span       int // the first hour, and how many the timeline shows
 	Days             []weekDay
+	Mood             []moodFace // today's: the five faces, one on (or none)
+}
+
+type moodFace struct {
+	Value int
+	Emoji string
+	On    bool
 }
 
 type hourLine struct {
@@ -79,6 +90,11 @@ func (h Week) Page(w http.ResponseWriter, r *http.Request, opts ...Option) {
 	monday := day.Monday()
 	end := monday.AddDays(7)
 
+	mood, err := h.Moods.Get(r.Context(), u.ID, today)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
 	tasks, err := h.Tasks.List(r.Context(), u.ID)
 	if err != nil {
 		serverError(w, err)
@@ -141,6 +157,9 @@ func (h Week) Page(w http.ResponseWriter, r *http.Request, opts ...Option) {
 		From:    from,
 		Span:    span,
 	}
+	for i, face := range model.Faces {
+		page.Mood = append(page.Mood, moodFace{Value: i + 1, Emoji: face, On: mood == i+1})
+	}
 	for hr := from; hr < to; hr++ {
 		page.Hours = append(page.Hours, hourLine{Label: fmt.Sprintf("%02d:00", hr), Top: percent(pct(clock.Time(hr * 60)))})
 	}
@@ -192,6 +211,21 @@ func (h Week) Page(w http.ResponseWriter, r *http.Request, opts ...Option) {
 		return
 	}
 	h.R.Render(w, "week", page, append([]Option{shell}, opts...)...)
+}
+
+// SetMood gives today its mood: a face tapped on the week (htmx, no swap).
+func (h Week) SetMood(w http.ResponseWriter, r *http.Request) {
+	mood, _ := strconv.Atoi(r.FormValue("mood"))
+	today := clock.DateOf(h.Now().In(h.Loc))
+	err := h.Moods.Set(r.Context(), UserFrom(r.Context()).ID, today, mood)
+	switch {
+	case errors.Is(err, model.ErrInvalid):
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	case err != nil:
+		serverError(w, err)
+	default:
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 func percent(f float64) string { return fmt.Sprintf("%.4f", f) }

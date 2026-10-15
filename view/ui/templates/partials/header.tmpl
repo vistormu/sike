@@ -4,7 +4,8 @@
      bar on the phone, hidden while the undo toast shows; no New, no "+". the
      phone's profile emoji is the shell's. Eyebrow and Day: the phone's week,
      "Week · Oct 12 – 18" over the picked day's name (app.js renames it), and
-     no rule: the day picker comes first. */}}
+     no rule: the day picker comes first. Mood: today's faces, on desktop
+     before the buttons (partials/mood). */}}
 {{ define "partials/header" -}}
 <header class="flex items-center justify-between border-b-2 border-border px-4 pt-6 pb-4 md:pr-6 md:pl-8{{ if .Eyebrow }} max-md:border-b-0 max-md:pb-2{{ end }}">
     <div class="flex items-baseline gap-3">
@@ -22,6 +23,9 @@
         {{- end }}
     </div>
     <div class="hidden items-center gap-2 md:flex">
+        {{- with .Mood }}
+        <div class="mr-4">{{ template "partials/mood" . }}</div>
+        {{- end }}
         {{- if .Prev }}
         {{ template "components/button" (dict "Glyph" "‹" "Href" .Prev) }}
         {{ template "components/button" (dict "Glyph" "›" "Href" .Next) }}

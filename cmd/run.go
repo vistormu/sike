@@ -39,6 +39,7 @@ SIKE_TZ the timezone times are in (default Europe/Madrid).`,
 				Users: service.NewUsers(st),
 				Areas: service.NewAreas(st),
 				Tasks: service.NewTasks(st),
+				Moods: service.NewMoods(st),
 				Loc:   loc,
 				Now:   time.Now,
 			})

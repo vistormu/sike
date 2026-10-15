@@ -18,6 +18,7 @@ type services struct {
 	Users *service.Users
 	Areas *service.Areas
 	Tasks *service.Tasks
+	Moods *service.Moods
 }
 
 // the tests' clock: madrid, stopped on wednesday 2026-10-14 at 18:45, the day
@@ -46,8 +47,8 @@ func testApp(t *testing.T) (http.Handler, services) {
 		t.Fatalf("Migrate: %v", err)
 	}
 	st := store.New(db)
-	svc := services{Users: service.NewUsers(st), Areas: service.NewAreas(st), Tasks: service.NewTasks(st)}
-	s, err := New(Config{Users: svc.Users, Areas: svc.Areas, Tasks: svc.Tasks, Loc: testLoc, Now: testNow})
+	svc := services{Users: service.NewUsers(st), Areas: service.NewAreas(st), Tasks: service.NewTasks(st), Moods: service.NewMoods(st)}
+	s, err := New(Config{Users: svc.Users, Areas: svc.Areas, Tasks: svc.Tasks, Moods: svc.Moods, Loc: testLoc, Now: testNow})
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}

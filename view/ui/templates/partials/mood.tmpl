@@ -1,0 +1,14 @@
+{{/* today's mood (figma: the week's header on desktop, a row under the day
+     picker on the phone): "Today's mood" and the five faces. a tap saves it
+     (htmx, nothing swapped); the faces are radios, so the tapped one stays on.
+     the faces as moodFace: Value, Emoji, On. */}}
+{{ define "partials/mood" -}}
+<form hx-post="/mood" hx-trigger="change" hx-swap="none" class="flex items-center justify-between gap-3">
+    <span class="text-label text-text-muted uppercase">Today's mood</span>
+    <div class="flex gap-1">
+        {{- range . }}
+        {{ template "components/mood_face" (dict "Name" "mood" "Value" .Value "Emoji" .Emoji "On" .On) }}
+        {{- end }}
+    </div>
+</form>
+{{- end }}

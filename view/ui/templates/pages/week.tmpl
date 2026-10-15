@@ -2,11 +2,12 @@
      the height when they fit (at least 36px each), else it scrolls. blocks sit
      at their % of the hours and of the column (clock.Layout: side by side when
      they clash), nested ones 40px further in, all 3px in on every side.
+     today's mood: in the header on desktop, under the chips on the phone.
      the phone shows one day: its day picker, chips and column are the ones
      marked data-shown (app.js moves the mark; data-day is the day's index). */}}
 {{ define "content" }}
 <div class="flex h-full flex-col" data-week data-before="{{ .Before }}" data-after="{{ .After }}">
-    {{ template "partials/header" (dict "Title" "Week" "Sub" .Sub "Prev" .Prev "Next" .Next "This" .This "New" "+ New task" "Href" "/week/new" "Eyebrow" .Eyebrow "Day" .Day) }}
+    {{ template "partials/header" (dict "Title" "Week" "Sub" .Sub "Prev" .Prev "Next" .Next "This" .This "New" "+ New task" "Href" "/week/new" "Eyebrow" .Eyebrow "Day" .Day "Mood" .Mood) }}
     {{- /* the phone: the day picker and the picked day's chips, over the rule */}}
     <div class="border-b-2 border-border md:hidden">
         <div class="grid grid-cols-7 px-2">
@@ -23,6 +24,7 @@
         </div>
         {{- end }}
         {{- end }}
+        <div class="px-4 pb-3">{{ template "partials/mood" .Mood }}</div>
     </div>
     <div class="hidden pr-4 md:flex">
         <div class="w-16 shrink-0"></div>

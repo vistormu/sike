@@ -20,6 +20,7 @@ type Config struct {
 	Users *service.Users
 	Areas *service.Areas
 	Tasks *service.Tasks
+	Moods *service.Moods
 	Loc   *time.Location   // SIKE_TZ
 	Now   func() time.Time // time.Now, or a stopped clock in tests
 }
@@ -49,8 +50,9 @@ func New(cfg Config) (*Server, error) {
 	mux.Handle("GET /pending", people.Require(http.HandlerFunc(pending.Show)))
 	someday := handlers.Someday{R: rd, Frame: frame, Tasks: cfg.Tasks, Areas: cfg.Areas}
 	mux.Handle("GET /someday", people.Require(http.HandlerFunc(someday.Show)))
-	week := handlers.Week{R: rd, Frame: frame, Tasks: cfg.Tasks, Loc: cfg.Loc, Now: cfg.Now}
+	week := handlers.Week{R: rd, Frame: frame, Tasks: cfg.Tasks, Moods: cfg.Moods, Loc: cfg.Loc, Now: cfg.Now}
 	mux.Handle("GET /week", people.Require(http.HandlerFunc(week.Show)))
+	mux.Handle("POST /mood", people.Require(http.HandlerFunc(week.SetMood)))
 	upcoming := handlers.Upcoming{R: rd, Frame: frame, Tasks: cfg.Tasks, Loc: cfg.Loc, Now: cfg.Now}
 	mux.Handle("GET /upcoming", people.Require(http.HandlerFunc(upcoming.Show)))
 	form := handlers.TaskForm{Tasks: cfg.Tasks, Areas: cfg.Areas, Loc: cfg.Loc, Now: cfg.Now}
