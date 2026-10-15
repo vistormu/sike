@@ -211,3 +211,17 @@ func TestCreatePersonErrors(t *testing.T) {
 		t.Errorf("%d users after failed creates, want 1", len(all))
 	}
 }
+
+func TestDevForget(t *testing.T) {
+	h, users := testServer(t)
+	if _, err := users.Add(context.Background(), "You", "🦊"); err != nil {
+		t.Fatal(err)
+	}
+	res := get(h, "/dev/forget", &http.Cookie{Name: userCookieName, Value: "1"})
+	if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/who" {
+		t.Fatalf("%d to %q, want 303 to /who", res.StatusCode, res.Header.Get("Location"))
+	}
+	if c := res.Cookies(); len(c) != 1 || c[0].Name != userCookieName || c[0].MaxAge >= 0 {
+		t.Errorf("cookies = %+v, want %s cleared", c, userCookieName)
+	}
+}

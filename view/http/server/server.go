@@ -47,6 +47,7 @@ func New(cfg Config) (*Server, error) {
 	mux.HandleFunc("POST /who/new", people.Create)
 	mux.HandleFunc("POST /who/{id}", people.Pick)
 	mux.HandleFunc("GET /dev/components", handlers.Dev{R: rd}.Components)
+	mux.HandleFunc("GET /dev/forget", people.Forget)
 
 	s.http = &http.Server{
 		Addr:              cfg.Addr,

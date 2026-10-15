@@ -25,6 +25,9 @@ the compiled `site.css` is committed and embedded, so `go build` and `just test`
 without node; only the css recipes need node + npm (they run `npm ci` themselves when
 `node_modules` is missing or was installed on another os).
 
+dev pages: `/dev/components` shows every component variant (compare with figma),
+`/dev/forget` forgets the chosen person and opens the picker.
+
 ## cli
 
 | command    | description          |
@@ -36,6 +39,10 @@ without node; only the css recipes need node + npm (they run `npm ci` themselves
 | `sike op user rm <id> [-y]` | delete a person and everything theirs (asks first) |
 | `sike op area list <user-id>` | a person's seven areas (color, name) |
 | `sike op area rename <user-id> <color> <name>` | rename one of them |
+| `sike op task add <user-id> <name> --area <area> [--when someday]` | add a task (area: color or name; when: pending, the default, or someday) |
+| `sike op task list <user-id>` | a person's tasks, in tab order |
+| `sike op task rm <user-id> <task-id>` | delete a task: done |
+| `sike op task move <user-id> <task-id> <when>` | move a task to pending or someday, on top |
 
 ## env
 

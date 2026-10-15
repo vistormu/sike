@@ -142,6 +142,12 @@ func (h People) Require(next http.Handler) http.Handler {
 	})
 }
 
+// Forget drops the chosen person and goes to the picker: for development,
+// until settings' "switch person" (m23).
+func (h People) Forget(w http.ResponseWriter, r *http.Request) {
+	forget(w, r)
+}
+
 // forget drops a cookie that names nobody and goes to the picker.
 func forget(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{Name: userCookie, Path: "/", MaxAge: -1})
