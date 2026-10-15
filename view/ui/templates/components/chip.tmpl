@@ -1,0 +1,4 @@
+{{/* Text, Color. Due: a deadline, always coral. */}}
+{{ define "components/chip" -}}
+<span class="inline-flex items-center border-2 border-border px-2 py-1 text-label text-text uppercase" style="background-color: var(--task-{{ if .Due }}coral{{ else }}{{ .Color }}{{ end }})">{{ .Text }}</span>
+{{- end }}

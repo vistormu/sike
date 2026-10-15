@@ -49,8 +49,8 @@ fonts: _node
     cp node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-{500,700}-normal.woff2 view/ui/static/fonts/
     cp node_modules/@fontsource/space-mono/files/space-mono-latin-400-normal.woff2 view/ui/static/fonts/
 
-# tailwind loads native binaries built per os/cpu. a node_modules synced from
-# another machine has the wrong ones: reinstall from the lockfile when so.
+# install node_modules from the lockfile when it is missing (it is not synced)
+# or was built for another os (tailwind loads native binaries per os/cpu).
 _node:
     #!/usr/bin/env bash
     set -euo pipefail

@@ -1,0 +1,7 @@
+{{/* Label, Name (the input name), Value. */}}
+{{ define "components/field" -}}
+<label class="flex flex-col gap-2">
+    <span class="text-label text-text-muted uppercase">{{ .Label }}</span>
+    <input name="{{ .Name }}" value="{{ .Value }}" class="h-12 w-full border-2 border-border bg-surface px-3 text-body text-text">
+</label>
+{{- end }}

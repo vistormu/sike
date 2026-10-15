@@ -1,0 +1,7 @@
+{{/* Href, Label, Color (its swatch). Active: butter. four per bar, each fills. */}}
+{{ define "components/tab_item" -}}
+<a href="{{ .Href }}" class="{{ if .Active }}border-2 border-border bg-accent text-text{{ else }}text-text-muted{{ end }} flex h-13 flex-1 flex-col items-center justify-center gap-1">
+    {{- template "components/swatch" (dict "Color" .Color) }}
+    <span class="text-label uppercase">{{ .Label }}</span>
+</a>
+{{- end }}

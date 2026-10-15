@@ -1,0 +1,144 @@
+{{ define "content" }}
+<main class="flex flex-col gap-8 p-8">
+    <h1 class="text-display">sike — components</h1>
+
+    <section class="flex flex-col gap-2">
+        <h2 class="text-title">Swatch</h2>
+        <div class="flex items-center gap-4 p-4">
+            {{ template "components/swatch" (dict "Color" "lavender") }}
+            {{ template "components/swatch" (dict "Color" "lavender" "Large" true) }}
+            {{ template "components/swatch" (dict "Color" "lavender" "Large" true "Selected" true) }}
+        </div>
+    </section>
+
+    <section class="flex flex-col gap-2">
+        <h2 class="text-title">Button</h2>
+        <div class="flex items-center gap-4 p-4">
+            {{ template "components/button" (dict "Label" "Today" "Primary" true) }}
+            {{ template "components/button" (dict "Label" "Today") }}
+            {{ template "components/button" (dict "Glyph" "+" "Primary" true) }}
+            {{ template "components/button" (dict "Glyph" "+") }}
+            {{ template "components/button" (dict "Glyph" "+" "Fab" true) }}
+        </div>
+    </section>
+
+    <section class="flex flex-col gap-2">
+        <h2 class="text-title">Chip</h2>
+        <div class="flex items-center gap-4 p-4">
+            {{ template "components/chip" (dict "Text" "Label" "Color" "pink") }}
+            {{ template "components/chip" (dict "Text" "Label" "Due" true) }}
+        </div>
+    </section>
+
+    <section class="flex flex-col gap-2">
+        <h2 class="text-title">Task block</h2>
+        <div class="flex items-start gap-4 p-4">
+            <div class="h-22 w-40">{{ template "components/task_block" (dict "Name" "Work" "Time" "09:00–17:00" "Color" "sky") }}</div>
+            <div class="h-8 w-40">{{ template "components/task_block" (dict "Name" "Work" "Time" "09:00–17:00" "Color" "sky" "Compact" true) }}</div>
+        </div>
+    </section>
+
+    <section class="flex flex-col gap-2">
+        <h2 class="text-title">Day head</h2>
+        <div class="flex items-start gap-4 p-4">
+            {{ template "components/day_head" (dict "Day" "Wed" "Date" "14") }}
+            {{ template "components/day_head" (dict "Day" "Wed" "Date" "14" "Today" true) }}
+        </div>
+    </section>
+
+    <section class="flex flex-col gap-2">
+        <h2 class="text-title">Mood face</h2>
+        <div class="flex items-center gap-1 p-4">
+            {{ template "components/mood_face" (dict "Emoji" "😞") }}
+            {{ template "components/mood_face" (dict "Emoji" "🙁") }}
+            {{ template "components/mood_face" (dict "Emoji" "😐") }}
+            {{ template "components/mood_face" (dict "Emoji" "🙂" "On" true) }}
+            {{ template "components/mood_face" (dict "Emoji" "😄") }}
+        </div>
+    </section>
+
+    <section class="flex flex-col gap-2">
+        <h2 class="text-title">Nav item</h2>
+        <div class="flex w-50 flex-col p-4 box-content">
+            {{ template "components/nav_item" (dict "Href" "#" "Label" "Week" "Color" "sky" "Active" true) }}
+            {{ template "components/nav_item" (dict "Href" "#" "Label" "Upcoming" "Color" "coral" "Count" "5") }}
+            {{ template "components/nav_item" (dict "Href" "#" "Label" "Pending" "Color" "mint" "Count" "5") }}
+            {{ template "components/nav_item" (dict "Href" "#" "Label" "Someday" "Color" "lavender" "Count" "6") }}
+        </div>
+    </section>
+
+    <section class="flex flex-col gap-2">
+        <h2 class="text-title">Tab item</h2>
+        <div class="flex w-[358px] p-4 box-content">
+            {{ template "components/tab_item" (dict "Href" "#" "Label" "Week" "Color" "sky" "Active" true) }}
+            {{ template "components/tab_item" (dict "Href" "#" "Label" "Upcoming" "Color" "coral") }}
+            {{ template "components/tab_item" (dict "Href" "#" "Label" "Pending" "Color" "mint") }}
+            {{ template "components/tab_item" (dict "Href" "#" "Label" "Someday" "Color" "lavender") }}
+        </div>
+    </section>
+
+    <section class="flex flex-col gap-2">
+        <h2 class="text-title">Row</h2>
+        <div class="flex w-[358px] flex-col p-4 box-content">
+            {{ template "components/row" (dict "Name" "Fix bike" "Color" "lavender" "Meta" "Due in 2 days" "Handle" true) }}
+            {{ template "components/row" (dict "Name" "Call the bank" "Color" "mint") }}
+        </div>
+    </section>
+
+    <section class="flex flex-col gap-2">
+        <h2 class="text-title">Field</h2>
+        <div class="w-80 p-4 box-content">
+            {{ template "components/field" (dict "Label" "Name" "Name" "name" "Value" "Gym") }}
+        </div>
+    </section>
+
+    <section class="flex flex-col gap-2">
+        <h2 class="text-title">Segment</h2>
+        <div class="flex flex-col items-start gap-4 p-4">
+            <div class="flex w-[428px] border-2 border-border bg-surface">
+                {{ template "components/segment" (dict "Name" "when" "Value" "weekly" "Label" "Every week" "Active" true) }}
+                {{ template "components/segment" (dict "Name" "when" "Value" "date" "Label" "On a date") }}
+                {{ template "components/segment" (dict "Name" "when" "Value" "pending" "Label" "Pending") }}
+                {{ template "components/segment" (dict "Name" "when" "Value" "someday" "Label" "Someday") }}
+            </div>
+        </div>
+    </section>
+
+    <section class="flex flex-col gap-2">
+        <h2 class="text-title">Check</h2>
+        <div class="flex items-center gap-4 p-4">
+            {{ template "components/check" (dict "Name" "notify_start" "Label" "Notify at start" "On" true) }}
+            {{ template "components/check" (dict "Name" "notify_end" "Label" "at end") }}
+        </div>
+    </section>
+
+    <section class="flex flex-col gap-2">
+        <h2 class="text-title">Tile</h2>
+        <div class="w-50 p-4 box-content">
+            {{ template "components/tile" (dict "Name" "Learn piano" "Color" "lavender") }}
+        </div>
+    </section>
+
+    <section class="flex flex-col gap-2">
+        <h2 class="text-title">Group header</h2>
+        <div class="w-[358px] p-4 box-content">
+            {{ template "components/group_header" (dict "Name" "Admin" "Color" "lavender" "Count" "2") }}
+        </div>
+    </section>
+
+    <section class="flex flex-col gap-2">
+        <h2 class="text-title">Area option</h2>
+        <div class="flex items-center gap-4 p-4">
+            {{ template "components/area_option" (dict "Name" "area" "Value" "1" "Label" "Body" "Color" "lavender") }}
+            {{ template "components/area_option" (dict "Name" "area" "Value" "2" "Label" "Body" "Color" "lavender" "Selected" true) }}
+        </div>
+    </section>
+
+    <section class="flex flex-col gap-2">
+        <h2 class="text-title">Toast</h2>
+        <div class="w-[358px] p-4 box-content">
+            {{ template "components/toast" (dict "Message" "Deleted “Fix bike”") }}
+        </div>
+    </section>
+</main>
+{{ end }}

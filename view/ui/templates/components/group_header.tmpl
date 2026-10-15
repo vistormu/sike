@@ -1,0 +1,8 @@
+{{/* Name (the area), Color, Count. */}}
+{{ define "components/group_header" -}}
+<div class="flex items-center gap-2 pt-4 pb-1">
+    {{- template "components/swatch" (dict "Color" .Color) }}
+    <span class="text-label text-text uppercase">{{ .Name }}</span>
+    <span class="font-mono text-mono text-text-muted">{{ .Count }}</span>
+</div>
+{{- end }}

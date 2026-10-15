@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"sike/view/http/handlers"
 	"sike/view/ui"
 )
 
@@ -34,6 +35,7 @@ func New(cfg Config) (*Server, error) {
 	mux := http.NewServeMux()
 	mux.Handle("GET /static/", noListing(http.StripPrefix("/static/", http.FileServerFS(ui.Static()))))
 	mux.HandleFunc("GET /{$}", s.home)
+	mux.HandleFunc("GET /dev/components", handlers.Dev{R: rd}.Components)
 
 	s.http = &http.Server{
 		Addr:              cfg.Addr,
@@ -81,5 +83,5 @@ func noListing(next http.Handler) http.Handler {
 }
 
 func (s *Server) home(w http.ResponseWriter, r *http.Request) {
-	s.rd.render(w, "home", nil)
+	s.rd.Render(w, "home", nil)
 }

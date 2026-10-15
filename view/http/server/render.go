@@ -13,16 +13,16 @@ import (
 	"sike/view/ui"
 )
 
-// renderer holds one template set per page: the layout cloned plus that page's
-// {{define "content"}}. Sets are independent, so every page can define
-// "content" without colliding with the others.
+// renderer holds one template set per page: the layout and components cloned,
+// plus that page's {{define "content"}}. Sets are independent, so every page
+// can define "content" without colliding with the others.
 type renderer struct {
 	pages map[string]*template.Template
 }
 
 func newRenderer() (*renderer, error) {
 	tmplFS := ui.Templates()
-	base, err := template.New("").Funcs(funcMap()).ParseFS(tmplFS, "layout.tmpl")
+	base, err := template.New("").Funcs(funcMap()).ParseFS(tmplFS, "layout.tmpl", "components/*.tmpl")
 	if err != nil {
 		return nil, err
 	}
@@ -50,9 +50,9 @@ func newRenderer() (*renderer, error) {
 	return &renderer{pages: pages}, nil
 }
 
-// render writes a page through the layout. It renders into a buffer first, so a
+// Render writes a page through the layout. It renders into a buffer first, so a
 // template error is a clean 500 instead of half a page.
-func (rd *renderer) render(w http.ResponseWriter, page string, data any) {
+func (rd *renderer) Render(w http.ResponseWriter, page string, data any) {
 	set, ok := rd.pages[page]
 	if !ok {
 		log.Printf("render: unknown page %q", page)

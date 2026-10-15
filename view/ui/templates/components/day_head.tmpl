@@ -1,0 +1,7 @@
+{{/* Day ("Wed"), Date ("14"). Today: the butter box. */}}
+{{ define "components/day_head" -}}
+<div class="flex flex-col items-center gap-1 py-2">
+    <span class="{{ if .Today }}text-text{{ else }}text-text-muted{{ end }} text-label uppercase">{{ .Day }}</span>
+    <span class="{{ if .Today }}border-2 border-border bg-accent{{ end }} flex size-10 items-center justify-center text-title text-text">{{ .Date }}</span>
+</div>
+{{- end }}
