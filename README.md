@@ -29,10 +29,12 @@ without node; only the css recipes need node + npm (they run `npm ci` themselves
 
 | command    | description          |
 | ---------- | -------------------- |
-| `sike run` | start the web server |
+| `sike run` | start the web server (migrates the db on boot) |
+| `sike migrate` | apply pending migrations, print the version |
 
 ## env
 
 | var         | default | what              |
 | ----------- | ------- | ----------------- |
 | `SIKE_ADDR` | `:8090` | listen address    |
+| `SIKE_DB`   | `sike.db` | sqlite database file, created if missing |
