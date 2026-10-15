@@ -29,7 +29,7 @@ func newTask(t *testing.T, s *Store, user int64, name, color string, when model.
 func TestTasksOrder(t *testing.T) {
 	ctx := context.Background()
 	s := New(testDB(t))
-	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"}, model.DefaultAreas)
+	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊", Warn: model.DefaultWarn}, model.DefaultAreas)
 
 	newTask(t, s, u.ID, "old admin", "coral", model.Pending)
 	newTask(t, s, u.ID, "wish", "lavender", model.Someday)
@@ -50,7 +50,7 @@ func TestTasksOrder(t *testing.T) {
 func TestMoveTaskGoesOnTop(t *testing.T) {
 	ctx := context.Background()
 	s := New(testDB(t))
-	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"}, model.DefaultAreas)
+	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊", Warn: model.DefaultWarn}, model.DefaultAreas)
 	w := newTask(t, s, u.ID, "was a wish", "sky", model.Someday)
 	newTask(t, s, u.ID, "already owed", "sky", model.Pending)
 
@@ -67,8 +67,8 @@ func TestTasksBelongToTheirPerson(t *testing.T) {
 	ctx := context.Background()
 	db := testDB(t)
 	s := New(db)
-	you, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"}, model.DefaultAreas)
-	them, _ := s.CreateUser(ctx, model.User{Name: "Partner", Emoji: "🐼"}, model.DefaultAreas)
+	you, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊", Warn: model.DefaultWarn}, model.DefaultAreas)
+	them, _ := s.CreateUser(ctx, model.User{Name: "Partner", Emoji: "🐼", Warn: model.DefaultWarn}, model.DefaultAreas)
 	mine := newTask(t, s, you.ID, "mine", "sky", model.Pending)
 
 	if _, err := s.GetTask(ctx, them.ID, mine.ID); !errors.Is(err, model.ErrNotFound) {
@@ -104,7 +104,7 @@ func TestTasksBelongToTheirPerson(t *testing.T) {
 func TestTaskNeedsAnAreaAndAWhen(t *testing.T) {
 	ctx := context.Background()
 	s := New(testDB(t))
-	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"}, model.DefaultAreas)
+	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊", Warn: model.DefaultWarn}, model.DefaultAreas)
 	if _, err := s.CreateTask(ctx, model.Task{UserID: u.ID, Name: "x", Color: "beige", When: model.Pending}); err == nil {
 		t.Error("a task in no area was stored")
 	}
@@ -116,7 +116,7 @@ func TestTaskNeedsAnAreaAndAWhen(t *testing.T) {
 func TestUpdateTask(t *testing.T) {
 	ctx := context.Background()
 	s := New(testDB(t))
-	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"}, model.DefaultAreas)
+	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊", Warn: model.DefaultWarn}, model.DefaultAreas)
 	a := newTask(t, s, u.ID, "a", "sky", model.Pending)
 	newTask(t, s, u.ID, "b", "sky", model.Pending)
 	newTask(t, s, u.ID, "wish", "sky", model.Someday)
@@ -138,7 +138,7 @@ func TestUpdateTask(t *testing.T) {
 		t.Errorf("moved task = %+v, want someday, pink, on top (position below %d)", all[2], all[1].Position)
 	}
 	// someone else's task: not found
-	them, _ := s.CreateUser(ctx, model.User{Name: "Partner", Emoji: "🐼"}, model.DefaultAreas)
+	them, _ := s.CreateUser(ctx, model.User{Name: "Partner", Emoji: "🐼", Warn: model.DefaultWarn}, model.DefaultAreas)
 	if _, err := s.UpdateTask(ctx, model.Task{ID: a.ID, UserID: them.ID, Name: "x", Color: "sky", When: model.Pending}); !errors.Is(err, model.ErrNotFound) {
 		t.Errorf("update another's task: err = %v, want ErrNotFound", err)
 	}
@@ -147,7 +147,7 @@ func TestUpdateTask(t *testing.T) {
 func TestDeleteThenRestore(t *testing.T) {
 	ctx := context.Background()
 	s := New(testDB(t))
-	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"}, model.DefaultAreas)
+	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊", Warn: model.DefaultWarn}, model.DefaultAreas)
 	a := newTask(t, s, u.ID, "a", "sky", model.Pending)
 	b := newTask(t, s, u.ID, "b", "sky", model.Pending)
 	newTask(t, s, u.ID, "c", "sky", model.Pending)
@@ -192,7 +192,7 @@ func TestDeleteThenRestore(t *testing.T) {
 		t.Errorf("%d rows, want 2: c, and b waiting for its undo", rows)
 	}
 	// someone else's undo: not found
-	them, _ := s.CreateUser(ctx, model.User{Name: "Partner", Emoji: "🐼"}, model.DefaultAreas)
+	them, _ := s.CreateUser(ctx, model.User{Name: "Partner", Emoji: "🐼", Warn: model.DefaultWarn}, model.DefaultAreas)
 	if err := s.RestoreTask(ctx, them.ID, b.ID); !errors.Is(err, model.ErrNotFound) {
 		t.Errorf("restore another's task: err = %v, want ErrNotFound", err)
 	}

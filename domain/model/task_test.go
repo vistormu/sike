@@ -37,3 +37,32 @@ func TestDatesOverAndShows(t *testing.T) {
 		}
 	}
 }
+
+func TestDatesNear(t *testing.T) {
+	today := clock.NewDate(2026, 10, 14) // wed
+	day := func(n int) clock.Date { return clock.NewDate(2026, 10, n) }
+	no := clock.NoTime
+	const hour, oneDay, twoDays = 60, 24 * 60, 48 * 60
+	tests := []struct {
+		name string
+		d    Dates
+		now  clock.Time
+		warn int
+		near bool
+	}{
+		{"due fri, a day's warning, wed", Dates{To: day(16), Start: no, End: no}, 18 * 60, oneDay, false},
+		{"due fri, two days' warning, wed", Dates{To: day(16), Start: no, End: no}, 18 * 60, twoDays, true},
+		{"due thu, a day's warning, wed 00:00", Dates{To: day(15), Start: no, End: no}, 0, oneDay, true},
+		{"due today, no hour, an hour's warning", Dates{To: day(14), Start: no, End: no}, 9 * 60, hour, true},
+		{"due today 20:00, an hour's warning, 18:59", Dates{To: day(14), Start: no, End: 20 * 60}, 18*60 + 59, hour, false},
+		{"due today 20:00, an hour's warning, 19:00", Dates{To: day(14), Start: no, End: 20 * 60}, 19 * 60, hour, true},
+		{"due tomorrow 10:00, a day's warning, 10:00", Dates{To: day(15), Start: no, End: 10 * 60}, 10 * 60, oneDay, true},
+		{"due today 14:00, gone by", Dates{To: day(14), Start: no, End: 14 * 60}, 15 * 60, twoDays, false},
+		{"not a deadline", Dates{From: day(15), To: day(15), Start: no, End: no}, 0, twoDays, false},
+	}
+	for _, tt := range tests {
+		if got := tt.d.Near(today, tt.now, tt.warn); got != tt.near {
+			t.Errorf("%s: near = %v, want %v", tt.name, got, tt.near)
+		}
+	}
+}

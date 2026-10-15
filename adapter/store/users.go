@@ -17,7 +17,7 @@ func (s *Store) CreateUser(ctx context.Context, u model.User, areas []model.Area
 	}
 	defer tx.Rollback()
 
-	res, err := tx.NamedExecContext(ctx, `INSERT INTO users (name, emoji) VALUES (:name, :emoji)`, u)
+	res, err := tx.NamedExecContext(ctx, `INSERT INTO users (name, emoji, warn) VALUES (:name, :emoji, :warn)`, u)
 	if isUnique(err) {
 		return model.User{}, fmt.Errorf("%w: %q", model.ErrTaken, u.Name)
 	}
@@ -38,17 +38,32 @@ func (s *Store) CreateUser(ctx context.Context, u model.User, areas []model.Area
 
 func (s *Store) ListUsers(ctx context.Context) ([]model.User, error) {
 	users := []model.User{}
-	err := s.db.SelectContext(ctx, &users, `SELECT id, name, emoji FROM users ORDER BY id`)
+	err := s.db.SelectContext(ctx, &users, `SELECT id, name, emoji, warn FROM users ORDER BY id`)
 	return users, err
 }
 
 func (s *Store) GetUser(ctx context.Context, id int64) (model.User, error) {
 	var u model.User
-	err := s.db.GetContext(ctx, &u, `SELECT id, name, emoji FROM users WHERE id = ?`, id)
+	err := s.db.GetContext(ctx, &u, `SELECT id, name, emoji, warn FROM users WHERE id = ?`, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return model.User{}, fmt.Errorf("user %d: %w", id, model.ErrNotFound)
 	}
 	return u, err
+}
+
+// UpdateUser changes a person's name, emoji and deadline warning.
+func (s *Store) UpdateUser(ctx context.Context, u model.User) error {
+	res, err := s.db.NamedExecContext(ctx, `UPDATE users SET name = :name, emoji = :emoji, warn = :warn WHERE id = :id`, u)
+	if isUnique(err) {
+		return fmt.Errorf("%w: %q", model.ErrTaken, u.Name)
+	}
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return fmt.Errorf("user %d: %w", u.ID, model.ErrNotFound)
+	}
+	return nil
 }
 
 func (s *Store) DeleteUser(ctx context.Context, id int64) error {

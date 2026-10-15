@@ -37,16 +37,14 @@ type upcomingRow struct {
 	Near                    bool // a deadline soon: the meta in danger
 }
 
-// nearDays: a deadline this close is near (until settings has the person's
-// own warning, m23).
-const nearDays = 2
-
 func (h Upcoming) Show(w http.ResponseWriter, r *http.Request) { h.Page(w, r) }
 
 func (h Upcoming) Page(w http.ResponseWriter, r *http.Request, opts ...Option) {
 	now := h.Now().In(h.Loc)
 	today, minute := clock.DateOf(now), clock.Time(now.Hour()*60+now.Minute())
-	tasks, err := h.Tasks.List(r.Context(), UserFrom(r.Context()).ID)
+	u := UserFrom(r.Context())
+	warn := u.Warn
+	tasks, err := h.Tasks.List(r.Context(), u.ID)
 	if err != nil {
 		serverError(w, err)
 		return
@@ -90,10 +88,10 @@ func (h Upcoming) Page(w http.ResponseWriter, r *http.Request, opts ...Option) {
 			page.Groups = append(page.Groups, upcomingGroup{Name: name})
 		}
 		g := &page.Groups[len(page.Groups)-1]
-		g.Rows = append(g.Rows, h.row(t, today, true))
+		g.Rows = append(g.Rows, h.row(t, today, minute, true, warn))
 	}
 	for _, t := range past {
-		page.Past = append(page.Past, h.row(t, today, false))
+		page.Past = append(page.Past, h.row(t, today, minute, false, warn))
 	}
 
 	shell, err := h.Frame.Shell(r, "upcoming")
@@ -131,8 +129,8 @@ func period(d, today clock.Date) string {
 // row writes a dated task's meta line, as figma does: "Tomorrow · Thu 15 ·
 // 11:00–12:00", "Due Fri 16 · in 2 days", "Mon 3 – Fri 7 · 5 days",
 // "Sat 21 · all day". coming rows say today and tomorrow, and near deadlines
-// how soon.
-func (h Upcoming) row(t model.Task, today clock.Date, coming bool) upcomingRow {
+// (within the person's warning) how soon.
+func (h Upcoming) row(t model.Task, today clock.Date, minute clock.Time, coming bool, warn int) upcomingRow {
 	d := *t.Date
 	row := upcomingRow{Name: t.Name, Color: t.Color, Href: fmt.Sprintf("/upcoming/%d", t.ID)}
 	day := func(x clock.Date) string { return fmt.Sprintf("%s %d", x.Weekday().String()[:3], x.Day) }
@@ -153,7 +151,7 @@ func (h Upcoming) row(t model.Task, today clock.Date, coming bool) upcomingRow {
 		if d.End != clock.NoTime {
 			row.Meta += " · " + d.End.String()
 		}
-		if days := daysBetween(today, d.To); coming && days <= nearDays {
+		if days := today.DaysTo(d.To); coming && d.Near(today, minute, warn) {
 			row.Near = true
 			row.Meta += " · " + map[int]string{0: "today", 1: "tomorrow"}[days]
 			if days > 1 {
@@ -161,19 +159,11 @@ func (h Upcoming) row(t model.Task, today clock.Date, coming bool) upcomingRow {
 			}
 		}
 	case d.From != d.To:
-		row.Meta = fmt.Sprintf("%s – %s · %d days", day(d.From), day(d.To), daysBetween(d.From, d.To)+1)
+		row.Meta = fmt.Sprintf("%s – %s · %d days", day(d.From), day(d.To), d.From.DaysTo(d.To)+1)
 	case d.AllDay():
 		row.Meta = soon(d.From) + day(d.From) + " · all day"
 	default:
 		row.Meta = soon(d.From) + day(d.From) + " · " + d.Start.String() + "–" + d.End.String()
 	}
 	return row
-}
-
-func daysBetween(a, b clock.Date) int {
-	n := 0
-	for ; a.Before(b); a = a.AddDays(1) {
-		n++
-	}
-	return n
 }

@@ -212,12 +212,13 @@ func TestCreatePersonErrors(t *testing.T) {
 	}
 }
 
-func TestDevForget(t *testing.T) {
+// settings' switch person forgets who you are.
+func TestSwitchPerson(t *testing.T) {
 	h, users := testServer(t)
 	if _, err := users.Add(context.Background(), "You", "🦊"); err != nil {
 		t.Fatal(err)
 	}
-	res := get(h, "/dev/forget", &http.Cookie{Name: userCookieName, Value: "1"})
+	res := postAs(h, "/settings/switch", nil, &http.Cookie{Name: userCookieName, Value: "1"})
 	if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/who" {
 		t.Fatalf("%d to %q, want 303 to /who", res.StatusCode, res.Header.Get("Location"))
 	}

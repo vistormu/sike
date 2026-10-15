@@ -36,11 +36,12 @@ func WithToast(status int, t Toast) Option {
 }
 
 // WithShell wraps the page in the sidebar (desktop) or tab bar (phone), with
-// tab active. tab is "" on pages that are no tab, like settings. counts are
+// tab active. tab is "settings" on settings, which is no tab: the profile is
+// active instead. counts are
 // shown next to their tab in the sidebar; a missing or zero count hides.
 func WithShell(u model.User, tab string, counts map[string]int) Option {
 	return func(v *View) {
-		s := &Shell{User: u}
+		s := &Shell{User: u, Settings: tab == "settings"}
 		for _, t := range tabs {
 			t.Active = t.Name == tab
 			if n := counts[t.Name]; n > 0 {
@@ -119,8 +120,9 @@ type Toast struct {
 
 // Shell is the app frame around a tab: who is in, and the four tabs.
 type Shell struct {
-	User model.User
-	Tabs []Tab
+	User     model.User
+	Tabs     []Tab
+	Settings bool // on settings: the profile is active, the phone has no emoji
 }
 
 type Tab struct {

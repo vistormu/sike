@@ -7,13 +7,17 @@
         {{- range .Shell.Tabs }}
         {{ template "components/nav_item" (dict "Href" .Href "Label" .Label "Color" .Color "Count" .Count "Active" .Active) }}
         {{- end }}
-        <a href="/settings" class="mt-auto flex items-center justify-between pr-2 pl-3">
-            <span class="flex items-center gap-2"><span class="text-title">{{ .Shell.User.Emoji }}</span><span class="text-body">{{ .Shell.User.Name }}</span></span>
-            <span class="text-label text-text-muted uppercase">Settings</span>
+        {{- /* the profile: active on settings, as a nav item. #me: settings
+             swaps it in when the name or emoji change */}}
+        <a href="/settings" id="me" class="{{ if .Shell.Settings }}border-border bg-accent{{ else }}border-transparent{{ end }} mt-auto flex h-11 items-center justify-between gap-2 border-2 pr-2 pl-3">
+            <span class="flex min-w-0 items-center gap-2"><span class="text-title">{{ .Shell.User.Emoji }}</span><span class="truncate text-body">{{ .Shell.User.Name }}</span></span>
+            <span class="{{ if .Shell.Settings }}text-text{{ else }}text-text-muted{{ end }} text-label uppercase">Settings</span>
         </a>
     </nav>
     <div class="relative flex min-w-0 flex-1 flex-col">
+        {{- if not .Shell.Settings }}
         <a href="/settings" class="absolute top-6 right-4 flex h-9 items-center text-title md:hidden [body:has([data-day-name])_&]:top-[42px]" hx-boost="true">{{ .Shell.User.Emoji }}</a>
+        {{- end }}
         <main class="min-h-0 flex-1 overflow-y-auto">
             {{ template "content" .Page }}
         </main>

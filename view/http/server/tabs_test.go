@@ -33,7 +33,7 @@ func TestTabs(t *testing.T) {
 		{"/upcoming", "Upcoming", "/upcoming"},
 		{"/pending", "Pending", "/pending"},
 		{"/someday", "Someday", "/someday"},
-		{"/settings", "Settings", ""},
+		{"/settings", "Settings", "/settings"}, // the profile, in the sidebar only
 	}
 	for _, tt := range tests {
 		t.Run(tt.path, func(t *testing.T) {
@@ -55,12 +55,16 @@ func TestTabs(t *testing.T) {
 					t.Errorf("%s linked %d times, want 2 (sidebar + tab bar)", href, n)
 				}
 			}
-			if !strings.Contains(page, "🦊") || !strings.Contains(page, "You") || strings.Count(page, `href="/settings"`) != 2 {
-				t.Errorf("the profile (emoji, name, two links to settings) is missing")
+			// the phone's emoji links to settings too, but not on settings
+			links := map[bool]int{true: 1, false: 2}[tt.path == "/settings"]
+			if !strings.Contains(page, "🦊") || !strings.Contains(page, "You") || strings.Count(page, `href="/settings"`) != links {
+				t.Errorf("the profile (emoji, name, %d links to settings) is missing", links)
 			}
-			// active = the bordered butter fill, once in each nav
-			if n := strings.Count(navs, "border-border bg-accent"); tt.active != "" && n != 2 || tt.active == "" && n != 0 {
-				t.Errorf("%d active items, want %d", n, map[bool]int{true: 2, false: 0}[tt.active != ""])
+			// active = the bordered butter fill, once in each nav; settings'
+			// profile only in the sidebar
+			want := map[bool]int{true: 1, false: 2}[tt.path == "/settings"]
+			if n := strings.Count(navs, "border-border bg-accent"); n != want {
+				t.Errorf("%d active items, want %d", n, want)
 			}
 		})
 	}

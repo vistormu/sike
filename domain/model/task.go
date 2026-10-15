@@ -62,6 +62,20 @@ func (d Dates) Over(today clock.Date, now clock.Time) bool {
 	return d.End != clock.NoTime && now >= d.End
 }
 
+// Near: a deadline within warn minutes of now (the person's deadline
+// warning), or past it and not over. due is its hour, or the start of its day
+// when it has none: "due Fri" with a day's warning is near from thursday.
+func (d Dates) Near(today clock.Date, now clock.Time, warn int) bool {
+	if !d.Deadline() || d.Over(today, now) {
+		return false
+	}
+	due := 0
+	if d.End != clock.NoTime {
+		due = int(d.End)
+	}
+	return today.DaysTo(d.To)*24*60+due-int(now) <= warn
+}
+
 // Shows is the day a dated task belongs to from today on: its first day (a
 // deadline's day), or today while a stretch that began before goes on.
 func (d Dates) Shows(today clock.Date) clock.Date {

@@ -1,0 +1,103 @@
+package handlers
+
+import (
+	"errors"
+	"net/http"
+	"strconv"
+
+	"sike/domain/model"
+	"sike/domain/service"
+)
+
+// Settings is the person's own page: name, emoji, area names, the deadline
+// warning, and the way to switch person. there is no save: every change posts
+// the form (htmx); the page comes back and only its toast and the profile in
+// the sidebar are taken from it.
+type Settings struct {
+	R     Renderer
+	Frame Frame
+	Users *service.Users
+	Areas *service.Areas
+}
+
+type settingsPage struct {
+	Name, Emoji string
+	Emojis      []string
+	Warnings    []warning
+	Areas       []model.Area
+}
+
+type warning struct {
+	Value int
+	Label string
+	On    bool
+}
+
+func (h Settings) Show(w http.ResponseWriter, r *http.Request) { h.page(w, r) }
+
+func (h Settings) page(w http.ResponseWriter, r *http.Request, opts ...Option) {
+	u := UserFrom(r.Context())
+	areas, err := h.Areas.List(r.Context(), u.ID)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	page := settingsPage{Name: u.Name, Emoji: u.Emoji, Emojis: model.Emojis, Areas: areas}
+	for _, v := range model.Warnings {
+		page.Warnings = append(page.Warnings, warning{Value: v, Label: model.WarnLabel(v), On: v == u.Warn})
+	}
+	shell, err := h.Frame.Shell(r, "settings")
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	h.R.Render(w, "settings", page, append([]Option{shell}, opts...)...)
+}
+
+// Save takes the whole form: the person, then each area whose name changed.
+// what is refused comes back as an error toast, with a 200 so htmx takes it.
+func (h Settings) Save(w http.ResponseWriter, r *http.Request) {
+	u := UserFrom(r.Context())
+	edited := u
+	edited.Name, edited.Emoji = r.FormValue("name"), r.FormValue("emoji")
+	edited.Warn, _ = strconv.Atoi(r.FormValue("warn"))
+	err := h.save(r, edited)
+	if errors.Is(err, model.ErrInvalid) {
+		h.page(w, r, WithToast(http.StatusOK, Toast{Message: err.Error(), Error: true}))
+		return
+	}
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	if r.Header.Get("HX-Request") == "" { // enter: a plain post
+		redirect(w, r, "/settings")
+		return
+	}
+	saved, err := h.Users.Get(r.Context(), u.ID)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	h.page(w, r.WithContext(withUser(r.Context(), saved)))
+}
+
+func (h Settings) save(r *http.Request, u model.User) error {
+	if _, err := h.Users.Edit(r.Context(), u); err != nil {
+		return err
+	}
+	areas, err := h.Areas.List(r.Context(), u.ID)
+	if err != nil {
+		return err
+	}
+	for _, a := range areas {
+		name, ok := r.Form["area-"+a.Color]
+		if !ok || name[0] == a.Name {
+			continue
+		}
+		if err := h.Areas.Rename(r.Context(), u.ID, a.Color, name[0]); err != nil {
+			return err
+		}
+	}
+	return nil
+}

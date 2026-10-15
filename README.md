@@ -25,8 +25,8 @@ the compiled `site.css` is committed and embedded, so `go build` and `just test`
 without node; only the css recipes need node + npm (they run `npm ci` themselves when
 `node_modules` is missing or was installed on another os).
 
-dev pages: `/dev/components` shows every component variant (compare with figma),
-`/dev/forget` forgets the chosen person and opens the picker.
+dev pages: `/dev/components` shows every component variant (compare with figma).
+settings' "Switch person" forgets the chosen person and opens the picker.
 
 ## cli
 
@@ -35,7 +35,8 @@ dev pages: `/dev/components` shows every component variant (compare with figma),
 | `sike run` | start the web server (migrates the db on boot) |
 | `sike migrate` | apply pending migrations, print the version |
 | `sike op user add <name> <emoji>` | add a person (the emoji is one of the 30 animals) |
-| `sike op user list` | list people, oldest first |
+| `sike op user list` | list people, oldest first, with their deadline warning |
+| `sike op user edit <id> [--name] [--emoji] [--warn 1h\|1d\|2d]` | change a person; what is not given stays |
 | `sike op user rm <id> [-y]` | delete a person and everything theirs (asks first) |
 | `sike op area list <user-id>` | a person's seven areas (color, name) |
 | `sike op area rename <user-id> <color> <name>` | rename one of them |

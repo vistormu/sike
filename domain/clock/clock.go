@@ -210,6 +210,9 @@ func (d Date) AddDays(n int) Date { return NewDate(d.Year, d.Month, d.Day+n) }
 
 func (d Date) Weekday() time.Weekday { return d.utc().Weekday() }
 
+// DaysTo is how many days from d to e: negative when e is earlier.
+func (d Date) DaysTo(e Date) int { return int(e.utc().Sub(d.utc()).Hours() / 24) }
+
 // Before reports whether d is earlier than e.
 func (d Date) Before(e Date) bool { return d.utc().Before(e.utc()) }
 

@@ -12,11 +12,11 @@ import (
 func TestMoods(t *testing.T) {
 	ctx := context.Background()
 	s := New(testDB(t))
-	u, err := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"}, model.DefaultAreas)
+	u, err := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊", Warn: model.DefaultWarn}, model.DefaultAreas)
 	if err != nil {
 		t.Fatal(err)
 	}
-	other, _ := s.CreateUser(ctx, model.User{Name: "Ana", Emoji: "🐻"}, model.DefaultAreas)
+	other, _ := s.CreateUser(ctx, model.User{Name: "Ana", Emoji: "🐻", Warn: model.DefaultWarn}, model.DefaultAreas)
 	today, yesterday := clock.NewDate(2026, 10, 15), clock.NewDate(2026, 10, 14)
 	mood := func(user int64, d clock.Date) int {
 		t.Helper()

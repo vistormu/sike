@@ -44,8 +44,10 @@ func New(cfg Config) (*Server, error) {
 	people := handlers.People{R: rd, Users: cfg.Users}
 	mux.Handle("GET /{$}", http.RedirectHandler("/week", http.StatusSeeOther))
 	frame := handlers.Frame{Tasks: cfg.Tasks, Loc: cfg.Loc, Now: cfg.Now}
-	t := handlers.Tabs{R: rd, Frame: frame}
-	mux.Handle("GET /settings", people.Require(t.Tab("settings")))
+	settings := handlers.Settings{R: rd, Frame: frame, Users: cfg.Users, Areas: cfg.Areas}
+	mux.Handle("GET /settings", people.Require(http.HandlerFunc(settings.Show)))
+	mux.Handle("POST /settings", people.Require(http.HandlerFunc(settings.Save)))
+	mux.HandleFunc("POST /settings/switch", people.Forget)
 	pending := handlers.Pending{R: rd, Frame: frame, Tasks: cfg.Tasks, Areas: cfg.Areas}
 	mux.Handle("GET /pending", people.Require(http.HandlerFunc(pending.Show)))
 	someday := handlers.Someday{R: rd, Frame: frame, Tasks: cfg.Tasks, Areas: cfg.Areas}
@@ -69,7 +71,6 @@ func New(cfg Config) (*Server, error) {
 	mux.HandleFunc("POST /who/new", people.Create)
 	mux.HandleFunc("POST /who/{id}", people.Pick)
 	mux.HandleFunc("GET /dev/components", handlers.Dev{R: rd}.Components)
-	mux.HandleFunc("GET /dev/forget", people.Forget)
 
 	s.http = &http.Server{
 		Addr:              cfg.Addr,

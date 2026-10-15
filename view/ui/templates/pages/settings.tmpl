@@ -1,0 +1,60 @@
+{{/* settings (figma): You, Notifications, Person on the left and the Areas on
+     the right on desktop; one column on the phone (You, Areas, Notifications,
+     Person). no save: every change posts the form (htmx), and only #toast and
+     #me (the sidebar's profile) are taken from the page that comes back; enter
+     posts it plainly. switch person is a form of its own, so enter never
+     presses it. the forms are display: contents, the grid holds the sections. the
+     ntfy topic joins Notifications in m24. */}}
+{{ define "content" }}
+{{ template "partials/header" (dict "Title" "Settings" "Back" "/week") }}
+<div class="grid gap-8 px-4 pt-6 pb-8 md:max-w-[1048px] md:grid-cols-2 md:grid-rows-[auto_auto_1fr] md:items-start md:px-8">
+<form method="post" action="/settings" hx-post="/settings" hx-trigger="change" hx-swap="none" hx-select-oob="#toast,#me" class="contents">
+    <section class="flex flex-col gap-3">
+        <h2 class="text-label text-text-muted uppercase">You</h2>
+        <div class="flex items-end gap-3">
+            <div class="min-w-0 flex-1">{{ template "components/field" (dict "Label" "Name" "Name" "name" "Value" .Name) }}</div>
+            {{- /* the emoji: a box like a field; open, the faces to pick from */}}
+            <div class="flex w-24 shrink-0 flex-col gap-2">
+                <span class="text-label text-text-muted uppercase">Emoji</span>
+                <details class="relative" data-emoji>
+                    <summary class="flex h-12 cursor-pointer list-none items-center border-2 border-border bg-surface px-3 text-body [&::-webkit-details-marker]:hidden">{{ .Emoji }}</summary>
+                    <div class="absolute top-full right-0 z-10 mt-1 grid w-max grid-cols-6 gap-1 border-2 border-border bg-surface p-3">
+                        {{- range .Emojis }}
+                        {{ template "components/mood_face" (dict "Name" "emoji" "Value" . "Emoji" . "On" (eq . $.Emoji)) }}
+                        {{- end }}
+                    </div>
+                </details>
+            </div>
+        </div>
+    </section>
+    <section class="flex flex-col gap-3 md:col-start-2 md:row-span-3 md:row-start-1">
+        <h2 class="text-label text-text-muted uppercase">Areas</h2>
+        <div class="flex flex-col gap-3">
+            {{- range .Areas }}
+            <div class="flex items-end gap-3">
+                {{ template "components/swatch" (dict "Color" .Color "Area" true) }}
+                <div class="min-w-0 flex-1">{{ template "components/field" (dict "Label" .Color "Name" (printf "area-%s" .Color) "Value" .Name) }}</div>
+            </div>
+            {{- end }}
+        </div>
+    </section>
+    <section class="flex flex-col gap-3 md:col-start-1">
+        <h2 class="text-label text-text-muted uppercase">Notifications</h2>
+        <div class="flex flex-col gap-2">
+            <span class="text-label text-text-muted uppercase">Warn before deadlines</span>
+            <div class="flex border-2 border-border bg-surface">
+                {{- range .Warnings }}
+                {{ template "components/segment" (dict "Name" "warn" "Value" .Value "Label" .Label "Active" .On) }}
+                {{- end }}
+            </div>
+        </div>
+    </section>
+</form>
+<form method="post" action="/settings/switch" class="contents">
+    <section class="flex flex-col gap-3 md:col-start-1">
+        <h2 class="text-label text-text-muted uppercase">Person</h2>
+        <div>{{ template "components/button" (dict "Label" "Switch person" "Submit" true) }}</div>
+    </section>
+</form>
+</div>
+{{ end }}

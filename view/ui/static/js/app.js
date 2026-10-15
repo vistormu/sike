@@ -93,6 +93,31 @@ document.addEventListener("touchend", (e) => {
   showDay(week, Number(on.dataset.day) + (dx < 0 ? 1 : -1));
 });
 
+// settings' emoji: a face picked in the open box shows in it, and the box
+// closes; a click elsewhere or Esc closes it too.
+document.addEventListener("change", (e) => {
+  const box = e.target.closest("details[data-emoji]");
+  if (!box) return;
+  box.querySelector("summary").textContent = e.target.value;
+  box.open = false;
+});
+document.addEventListener("click", (e) => {
+  for (const box of document.querySelectorAll("details[data-emoji][open]")) if (!box.contains(e.target)) box.open = false;
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") for (const box of document.querySelectorAll("details[data-emoji][open]")) box.open = false;
+});
+
+// the phone's ‹ (settings): back where the person came from, if it was here
+// (a boosted link leaves htmx's mark on the history entry); else its link.
+document.addEventListener("click", (e) => {
+  if (!e.target.closest("[data-back]")) return;
+  if (history.length > 1 && (history.state?.htmx || document.referrer.startsWith(location.origin))) {
+    e.preventDefault();
+    history.back();
+  }
+});
+
 // a time field: what was typed (1830, 18.30, 8) becomes HH:MM on leaving it,
 // as the server reads it (clock.ReadTime). anything else stays for the server
 // to refuse.

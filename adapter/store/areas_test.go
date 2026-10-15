@@ -11,7 +11,7 @@ import (
 func TestAreasComeWithTheUser(t *testing.T) {
 	ctx := context.Background()
 	s := New(testDB(t))
-	u, err := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"}, model.DefaultAreas)
+	u, err := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊", Warn: model.DefaultWarn}, model.DefaultAreas)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +38,7 @@ func TestCreateUserIsAtomic(t *testing.T) {
 	ctx := context.Background()
 	s := New(testDB(t))
 	bad := []model.Area{{Color: "lavender", Name: "Self"}, {Color: "beige", Name: "Nope"}} // fails the check
-	if _, err := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"}, bad); err == nil {
+	if _, err := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊", Warn: model.DefaultWarn}, bad); err == nil {
 		t.Fatal("a bad area did not fail CreateUser")
 	}
 	if users, _ := s.ListUsers(ctx); len(users) != 0 {
@@ -49,8 +49,8 @@ func TestCreateUserIsAtomic(t *testing.T) {
 func TestRenameArea(t *testing.T) {
 	ctx := context.Background()
 	s := New(testDB(t))
-	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"}, model.DefaultAreas)
-	other, _ := s.CreateUser(ctx, model.User{Name: "Partner", Emoji: "🐼"}, model.DefaultAreas)
+	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊", Warn: model.DefaultWarn}, model.DefaultAreas)
+	other, _ := s.CreateUser(ctx, model.User{Name: "Partner", Emoji: "🐼", Warn: model.DefaultWarn}, model.DefaultAreas)
 
 	if err := s.RenameArea(ctx, u.ID, "sky", "Job"); err != nil {
 		t.Fatal(err)
@@ -77,7 +77,7 @@ func TestDeletingAUserDeletesTheirAreas(t *testing.T) {
 	ctx := context.Background()
 	db := testDB(t)
 	s := New(db)
-	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"}, model.DefaultAreas)
+	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊", Warn: model.DefaultWarn}, model.DefaultAreas)
 	if err := s.DeleteUser(ctx, u.ID); err != nil {
 		t.Fatal(err)
 	}

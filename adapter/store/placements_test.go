@@ -12,8 +12,8 @@ import (
 func TestPlacements(t *testing.T) {
 	ctx := context.Background()
 	s := New(testDB(t))
-	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"}, model.DefaultAreas)
-	them, _ := s.CreateUser(ctx, model.User{Name: "Partner", Emoji: "🐼"}, model.DefaultAreas)
+	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊", Warn: model.DefaultWarn}, model.DefaultAreas)
+	them, _ := s.CreateUser(ctx, model.User{Name: "Partner", Emoji: "🐼", Warn: model.DefaultWarn}, model.DefaultAreas)
 
 	gym := model.Placement{Days: model.DaysOf(time.Wednesday, time.Saturday), Start: 18 * 60, End: 19*60 + 30, NotifyStart: true}
 	early := model.Placement{Days: model.DaysOf(time.Monday), Start: 7 * 60, End: 8 * 60, NotifyEnd: true}
@@ -93,7 +93,7 @@ func TestPlacements(t *testing.T) {
 func TestUpdateReplacesPlacements(t *testing.T) {
 	ctx := context.Background()
 	s := New(testDB(t))
-	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"}, model.DefaultAreas)
+	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊", Warn: model.DefaultWarn}, model.DefaultAreas)
 	p := model.Placement{Days: model.DaysOf(time.Monday), Start: 9 * 60, End: 17 * 60}
 	task, _ := s.CreateTask(ctx, model.Task{UserID: u.ID, Name: "Work", Color: "sky", When: model.Weekly, Places: []model.Placement{p, p}})
 

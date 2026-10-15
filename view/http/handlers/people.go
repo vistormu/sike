@@ -138,12 +138,12 @@ func (h People) Require(next http.Handler) http.Handler {
 			serverError(w, err)
 			return
 		}
-		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), userKey{}, u)))
+		next.ServeHTTP(w, r.WithContext(withUser(r.Context(), u)))
 	})
 }
 
-// Forget drops the chosen person and goes to the picker: for development,
-// until settings' "switch person" (m23).
+// Forget drops the chosen person and goes to the picker: settings' "Switch
+// person".
 func (h People) Forget(w http.ResponseWriter, r *http.Request) {
 	forget(w, r)
 }
@@ -155,6 +155,10 @@ func forget(w http.ResponseWriter, r *http.Request) {
 }
 
 type userKey struct{}
+
+func withUser(ctx context.Context, u model.User) context.Context {
+	return context.WithValue(ctx, userKey{}, u)
+}
 
 // UserFrom is the person Require let through.
 func UserFrom(ctx context.Context) model.User {

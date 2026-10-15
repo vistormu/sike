@@ -11,7 +11,7 @@ import (
 func TestTaskDates(t *testing.T) {
 	ctx := context.Background()
 	s := New(testDB(t))
-	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊"}, model.DefaultAreas)
+	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊", Warn: model.DefaultWarn}, model.DefaultAreas)
 	oct := func(day int) clock.Date { return clock.NewDate(2026, 10, day) }
 
 	dentist := model.Dates{From: oct(15), To: oct(15), Start: 11 * 60, End: 12 * 60, Notify: true}

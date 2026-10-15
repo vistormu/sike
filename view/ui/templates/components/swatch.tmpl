@@ -1,7 +1,8 @@
 {{/* Color: area color name. Large: the 28px picker size; its ✓ shows when
-     Selected, or when the label around it holds a checked input. */}}
+     Selected, or when the label around it holds a checked input. Area: the
+     48px block beside an area's name in settings. */}}
 {{ define "components/swatch" -}}
-<span class="{{ if .Large }}size-7{{ else }}size-4{{ end }} inline-flex shrink-0 items-center justify-center border-2 border-border text-strong text-text" style="background-color: var(--task-{{ .Color }})">
+<span class="{{ if .Large }}size-7{{ else if .Area }}size-12{{ else }}size-4{{ end }} inline-flex shrink-0 items-center justify-center border-2 border-border text-strong text-text" style="background-color: var(--task-{{ .Color }})">
     {{- if .Large }}<span class="{{ if not .Selected }}invisible group-has-checked:visible{{ end }}">✓</span>{{ end -}}
 </span>
 {{- end }}

@@ -83,7 +83,7 @@ func TestUpcoming(t *testing.T) {
 	want := []string{
 		"Report | Due Wed 14 · 20:00 · today !",
 		"Dentist | Tomorrow · Thu 15 · 11:00–12:00",
-		"Taxes | Due Fri 16 · in 2 days !",
+		"Taxes | Due Fri 16", // a day's warning (the default): not near yet
 		"Market | Tue 20 · all day",
 		"Trip to Lisbon | Mon 2 – Fri 6 · 5 days",
 		"Renew passport | Due Tue 3",
@@ -107,6 +107,16 @@ func TestUpcoming(t *testing.T) {
 	}
 	if strings.Contains(page, "Nothing coming up") || strings.Contains(page, "Fix bike") {
 		t.Error("the empty state or a pending task shows")
+	}
+
+	// with two days' warning, the taxes are near
+	you.Warn = 2 * 24 * 60
+	if _, err := svc.Users.Edit(context.Background(), you); err != nil {
+		t.Fatal(err)
+	}
+	page = body(t, get(h, "/upcoming", &http.Cookie{Name: userCookieName, Value: "1"}))
+	if !strings.Contains(page, `<span class="text-danger font-mono text-mono">Due Fri 16 · in 2 days</span>`) {
+		t.Error("with two days' warning, the taxes are not near")
 	}
 }
 

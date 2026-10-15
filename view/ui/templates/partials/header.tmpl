@@ -5,9 +5,14 @@
      phone's profile emoji is the shell's. Eyebrow and Day: the phone's week,
      "Week · Oct 12 – 18" over the picked day's name (app.js renames it), and
      no rule: the day picker comes first. Mood: today's faces, on desktop
-     before the buttons (partials/mood). */}}
+     before the buttons (partials/mood). Back: the phone's ‹ before the title
+     (settings), back where the person came from (app.js), else to Back. */}}
 {{ define "partials/header" -}}
 <header class="flex items-center justify-between border-b-2 border-border px-4 pt-6 pb-4 md:pr-6 md:pl-8{{ if .Eyebrow }} max-md:border-b-0 max-md:pb-2{{ end }}">
+    <div class="flex items-center gap-4">
+    {{- with .Back }}
+    <span class="md:hidden" data-back>{{ template "components/button" (dict "Glyph" "‹" "Href" .) }}</span>
+    {{- end }}
     <div class="flex items-baseline gap-3">
         {{- if .Eyebrow }}
         <div class="flex flex-col gap-1 md:hidden">
@@ -21,6 +26,7 @@
         {{- with .Sub }}
         <span class="hidden text-body text-text-muted md:inline">{{ . }}</span>
         {{- end }}
+    </div>
     </div>
     <div class="hidden items-center gap-2 md:flex">
         {{- with .Mood }}
