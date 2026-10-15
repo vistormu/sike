@@ -1,0 +1,14 @@
+{
+  "name": "sike",
+  "short_name": "sike",
+  "start_url": "/week",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F7F3EA",
+  "theme_color": "#F7F3EA",
+  "icons": [
+    { "src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

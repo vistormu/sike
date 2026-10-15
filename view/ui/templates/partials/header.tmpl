@@ -43,6 +43,6 @@
     </div>
 </header>
 {{- if .New }}
-<span class="fixed right-4 bottom-[86px] md:hidden [body:has([data-undo])_&]:hidden">{{ template "components/button" (dict "Glyph" "+" "Href" .Href "Fab" true) }}</span>
+<span class="fixed right-4 bottom-[calc(86px+env(safe-area-inset-bottom))] z-10 md:hidden [body:has([data-undo])_&]:hidden">{{ template "components/button" (dict "Glyph" "+" "Href" .Href "Fab" true) }}</span>
 {{- end }}
 {{- end }}

@@ -3,8 +3,18 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {{- /* installable (pwa): the manifest, the icon, the iphone's tags. cover:
+         the page reaches the screen's edges; the tab bar, the + and the toast
+         keep clear of the home bar with env(safe-area-inset-bottom) */}}
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>sike</title>
+    <meta name="theme-color" content="#F7F3EA">
+    <link rel="manifest" href="/static/manifest.webmanifest">
+    <link rel="icon" href="/static/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-title" content="sike">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <link rel="stylesheet" href="/static/css/site.css">
     <script src="/static/js/htmx.min.js" defer></script>
     <script src="/static/js/app.js" defer></script>
@@ -18,7 +28,7 @@
          always there: settings swaps it in (htmx) */}}
     <div id="toast">
         {{- with .Toast }}
-        <div class="fixed inset-x-4 bottom-4 mx-auto max-w-[358px]{{ if and $.Shell (not $.Form) }} max-md:bottom-[86px]{{ end }}">{{ template "components/toast" . }}</div>
+        <div class="fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] mx-auto max-w-[358px]{{ if and $.Shell (not $.Form) }} max-md:bottom-[calc(86px+env(safe-area-inset-bottom))]{{ end }}">{{ template "components/toast" . }}</div>
         {{- end }}
     </div>
 </body>

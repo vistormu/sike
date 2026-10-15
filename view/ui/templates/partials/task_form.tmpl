@@ -9,7 +9,7 @@
             <h1 class="text-title">Task</h1>
             {{ template "components/button" (dict "Label" "Save" "Primary" true "Submit" true) }}
         </div>
-        <div class="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 pt-4 pb-6 md:p-6">
+        <div class="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:p-6">
             <div class="hidden items-center justify-between md:flex">
                 <h1 class="text-display">Task</h1>
                 {{ template "components/button" (dict "Glyph" "×" "Href" .Close) }}

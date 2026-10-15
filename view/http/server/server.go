@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"mime"
 	"net/http"
 	"os/signal"
 	"strings"
@@ -107,6 +108,9 @@ func (s *Server) Run(ctx context.Context) error {
 	defer cancel()
 	return s.http.Shutdown(shutdownCtx)
 }
+
+// the stdlib knows no web manifest: browsers want this type for it (pwa).
+func init() { mime.AddExtensionType(".webmanifest", "application/manifest+json") }
 
 // noListing 404s directory paths, so /static/ never lists its files.
 func noListing(next http.Handler) http.Handler {

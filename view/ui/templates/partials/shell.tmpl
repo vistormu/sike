@@ -21,7 +21,7 @@
         <main class="min-h-0 flex-1 overflow-y-auto">
             {{ template "content" .Page }}
         </main>
-        <nav class="flex gap-1 border-t-2 border-border bg-bg p-2 md:hidden" hx-boost="true">
+        <nav class="flex gap-1 border-t-2 border-border bg-bg p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:hidden" hx-boost="true">
             {{- range .Shell.Tabs }}
             {{ template "components/tab_item" (dict "Href" .Href "Label" .Label "Color" .Color "Active" .Active) }}
             {{- end }}
