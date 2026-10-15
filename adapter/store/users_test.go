@@ -65,7 +65,7 @@ func TestUpdateUser(t *testing.T) {
 	fox, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊", Warn: model.DefaultWarn}, nil)
 	s.CreateUser(ctx, model.User{Name: "Partner", Emoji: "🐼", Warn: model.DefaultWarn}, nil)
 
-	fox.Name, fox.Emoji, fox.Warn = "Vic", "🐸", 60
+	fox.Name, fox.Emoji, fox.Warn, fox.Topic = "Vic", "🐸", 60, "sike-vic"
 	if err := s.UpdateUser(ctx, fox); err != nil {
 		t.Fatal(err)
 	}

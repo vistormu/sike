@@ -16,13 +16,18 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") document.querySelector("[data-task][data-selected]")?.removeAttribute("data-selected");
 });
 
-// the undo toast after a delete: it goes after ~5 s (the + comes back with
-// it, css), and the url forgets ?deleted= so a reload or back shows no undo.
-const undo = document.querySelector("[data-undo]");
-if (undo) {
-  history.replaceState(null, "", location.pathname);
-  setTimeout(() => undo.parentElement.remove(), 5000);
+// an info toast goes after ~5 s; errors stay until the next one. the undo
+// after a delete is one (the + comes back with it, css), and the url forgets
+// ?deleted= so a reload or back shows no undo. settings swaps toasts in.
+function timeToast() {
+  const info = document.querySelector('#toast [role="status"]:not([data-timed])');
+  if (!info) return;
+  info.setAttribute("data-timed", "");
+  if (info.hasAttribute("data-undo")) history.replaceState(null, "", location.pathname);
+  setTimeout(() => info.parentElement.remove(), 5000);
 }
+timeToast();
+document.addEventListener("htmx:oobAfterSwap", timeToast);
 
 // "+ Add time" in the task form: one more box in the weekly schedule, copied
 // from its <template> with the next free index.

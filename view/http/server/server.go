@@ -16,13 +16,14 @@ import (
 )
 
 type Config struct {
-	Addr  string
-	Users *service.Users
-	Areas *service.Areas
-	Tasks *service.Tasks
-	Moods *service.Moods
-	Loc   *time.Location   // SIKE_TZ
-	Now   func() time.Time // time.Now, or a stopped clock in tests
+	Addr     string
+	Users    *service.Users
+	Areas    *service.Areas
+	Tasks    *service.Tasks
+	Moods    *service.Moods
+	Notifier *service.Notifier
+	Loc      *time.Location   // SIKE_TZ
+	Now      func() time.Time // time.Now, or a stopped clock in tests
 }
 
 type Server struct {
@@ -44,9 +45,10 @@ func New(cfg Config) (*Server, error) {
 	people := handlers.People{R: rd, Users: cfg.Users}
 	mux.Handle("GET /{$}", http.RedirectHandler("/week", http.StatusSeeOther))
 	frame := handlers.Frame{Tasks: cfg.Tasks, Loc: cfg.Loc, Now: cfg.Now}
-	settings := handlers.Settings{R: rd, Frame: frame, Users: cfg.Users, Areas: cfg.Areas}
+	settings := handlers.Settings{R: rd, Frame: frame, Users: cfg.Users, Areas: cfg.Areas, Notifier: cfg.Notifier}
 	mux.Handle("GET /settings", people.Require(http.HandlerFunc(settings.Show)))
 	mux.Handle("POST /settings", people.Require(http.HandlerFunc(settings.Save)))
+	mux.Handle("POST /settings/test", people.Require(http.HandlerFunc(settings.Test)))
 	mux.HandleFunc("POST /settings/switch", people.Forget)
 	pending := handlers.Pending{R: rd, Frame: frame, Tasks: cfg.Tasks, Areas: cfg.Areas}
 	mux.Handle("GET /pending", people.Require(http.HandlerFunc(pending.Show)))

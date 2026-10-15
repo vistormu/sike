@@ -36,7 +36,7 @@ settings' "Switch person" forgets the chosen person and opens the picker.
 | `sike migrate` | apply pending migrations, print the version |
 | `sike op user add <name> <emoji>` | add a person (the emoji is one of the 30 animals) |
 | `sike op user list` | list people, oldest first, with their deadline warning |
-| `sike op user edit <id> [--name] [--emoji] [--warn 1h\|1d\|2d]` | change a person; what is not given stays |
+| `sike op user edit <id> [--name] [--emoji] [--warn 1h\|1d\|2d] [--topic]` | change a person; what is not given stays |
 | `sike op user rm <id> [-y]` | delete a person and everything theirs (asks first) |
 | `sike op area list <user-id>` | a person's seven areas (color, name) |
 | `sike op area rename <user-id> <color> <name>` | rename one of them |
@@ -53,6 +53,7 @@ settings' "Switch person" forgets the chosen person and opens the picker.
 | `sike op mood show <user-id> [--date YYYY-MM-DD]` | a person's mood today (or on that day) |
 | `sike op mood set <user-id> <1-5 \| face> [--date YYYY-MM-DD]` | give the day its mood: `4` or `🙂` |
 | `sike op mood clear <user-id> [--date YYYY-MM-DD]` | take the day's mood away |
+| `sike op notify test <user-id>` | send a test message to the person's ntfy topic |
 
 ## env
 
@@ -61,3 +62,5 @@ settings' "Switch person" forgets the chosen person and opens the picker.
 | `SIKE_ADDR` | `:8090` | listen address    |
 | `SIKE_DB`   | `sike.db` | sqlite database file, created if missing |
 | `SIKE_TZ`   | `Europe/Madrid` | the timezone every time is wall-clock in |
+| `SIKE_NTFY_URL` | (none: notifications off) | the ntfy server, `https://ntfy.vistormu.dev` |
+| `SIKE_NTFY_TOKEN` | (none) | an ntfy access token (`tk_…`) with write access to the people's topics |

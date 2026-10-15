@@ -44,8 +44,8 @@ func (s *Users) Add(ctx context.Context, name, emoji string) (model.User, error)
 	return created, err
 }
 
-// Edit changes a person's name, emoji and deadline warning (settings), checked
-// as Add checks them.
+// Edit changes a person's name, emoji, deadline warning and ntfy topic
+// (settings), checked as Add checks them.
 func (s *Users) Edit(ctx context.Context, u model.User) (model.User, error) {
 	u, err := checkUser(u)
 	if err != nil {
@@ -59,7 +59,7 @@ func (s *Users) Edit(ctx context.Context, u model.User) (model.User, error) {
 }
 
 func checkUser(u model.User) (model.User, error) {
-	u.Name, u.Emoji = strings.TrimSpace(u.Name), strings.TrimSpace(u.Emoji)
+	u.Name, u.Emoji, u.Topic = strings.TrimSpace(u.Name), strings.TrimSpace(u.Emoji), strings.TrimSpace(u.Topic)
 	switch {
 	case u.Name == "":
 		return u, model.Invalid("A name is required")
@@ -69,6 +69,8 @@ func checkUser(u model.User) (model.User, error) {
 		return u, model.Invalid("Pick one of %s", strings.Join(model.Emojis, " "))
 	case !model.IsWarning(u.Warn):
 		return u, model.Invalid("Warn 1 hour, 1 day or 2 days before deadlines")
+	case !model.IsTopic(u.Topic):
+		return u, model.Invalid("A topic is up to 64 letters, digits, - and _")
 	}
 	return u, nil
 }

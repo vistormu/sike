@@ -2,7 +2,7 @@
      so several can be on (weekdays). segments sit with no gap inside one box:
      flex border-2 border-border bg-surface. */}}
 {{ define "components/segment" -}}
-<label class="flex flex-1 cursor-pointer items-center justify-center px-3 py-2 text-strong whitespace-nowrap text-text-muted has-checked:bg-accent has-checked:text-text has-focus-visible:[outline-style:auto]">
+<label class="relative flex flex-1 cursor-pointer items-center justify-center px-3 py-2 text-strong whitespace-nowrap text-text-muted has-checked:bg-accent has-checked:text-text has-focus-visible:[outline-style:auto]">
     <input type="{{ if .Multi }}checkbox{{ else }}radio{{ end }}" name="{{ .Name }}" value="{{ .Value }}" class="sr-only"{{ if .Active }} checked{{ end }}>{{ .Label }}
 </label>
 {{- end }}

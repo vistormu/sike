@@ -106,6 +106,8 @@ func TestEditUser(t *testing.T) {
 		{model.User{ID: you.ID, Name: "Vic", Emoji: "🐶", Warn: 60}, "Pick one of"},
 		{model.User{ID: you.ID, Name: "ana", Emoji: "🐼", Warn: 60}, "“ana” is already taken"},
 		{model.User{ID: ana.ID, Name: "ANA", Emoji: "🐱", Warn: 60}, ""}, // her own name, recased
+		{model.User{ID: ana.ID, Name: "Ana", Emoji: "🐱", Warn: 60, Topic: " sike-ana_2 "}, ""},
+		{model.User{ID: ana.ID, Name: "Ana", Emoji: "🐱", Warn: 60, Topic: "sike ana"}, "up to 64 letters"},
 	}
 	for _, tt := range tests {
 		_, err := s.Edit(context.Background(), tt.u)
@@ -118,5 +120,8 @@ func TestEditUser(t *testing.T) {
 	}
 	if got := f.created[0]; got.Name != "Vic" || got.Emoji != "🐼" || got.Warn != 2880 {
 		t.Errorf("stored %+v, want Vic 🐼 2880", got)
+	}
+	if got := f.created[1]; got.Topic != "sike-ana_2" {
+		t.Errorf("stored topic %q, want sike-ana_2 (trimmed)", got.Topic)
 	}
 }

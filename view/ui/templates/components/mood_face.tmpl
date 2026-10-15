@@ -1,7 +1,7 @@
 {{/* a radio: Name (the group), Value, Emoji. On: checked (the butter box).
      used in rows of faces, gap-1: the mood, the emoji picker. */}}
 {{ define "components/mood_face" -}}
-<label class="flex size-8 cursor-pointer items-center justify-center text-body opacity-45 has-checked:border-2 has-checked:border-border has-checked:bg-accent has-checked:opacity-100">
+<label class="relative flex size-8 cursor-pointer items-center justify-center text-body opacity-45 has-checked:border-2 has-checked:border-border has-checked:bg-accent has-checked:opacity-100">
     <input type="radio" name="{{ .Name }}" value="{{ .Value }}" class="sr-only"{{ if .On }} checked{{ end }}>{{ .Emoji -}}
 </label>
 {{- end }}

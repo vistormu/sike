@@ -35,13 +35,14 @@ SIKE_TZ the timezone times are in (default Europe/Madrid).`,
 			}
 			st := store.New(db)
 			srv, err := server.New(server.Config{
-				Addr:  getenv("SIKE_ADDR", ":8090"),
-				Users: service.NewUsers(st),
-				Areas: service.NewAreas(st),
-				Tasks: service.NewTasks(st),
-				Moods: service.NewMoods(st),
-				Loc:   loc,
-				Now:   time.Now,
+				Addr:     getenv("SIKE_ADDR", ":8090"),
+				Users:    service.NewUsers(st),
+				Areas:    service.NewAreas(st),
+				Tasks:    service.NewTasks(st),
+				Moods:    service.NewMoods(st),
+				Notifier: service.NewNotifier(notifierPort()),
+				Loc:      loc,
+				Now:      time.Now,
 			})
 			if err != nil {
 				return err

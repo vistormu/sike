@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"sike/adapter/store"
+	"sike/domain/port"
 	"sike/domain/service"
 )
 
@@ -19,6 +21,19 @@ type services struct {
 	Areas *service.Areas
 	Tasks *service.Tasks
 	Moods *service.Moods
+	Sent  *[]string // what the notifier sent: "topic: title · body"
+}
+
+// fakeNtfy stands in for ntfy: it keeps what it is sent, and refuses the
+// topic "refused" as a server without access would.
+type fakeNtfy struct{ sent *[]string }
+
+func (f fakeNtfy) Notify(_ context.Context, topic string, m port.Message) error {
+	if topic == "refused" {
+		return errors.New("ntfy: 403 forbidden")
+	}
+	*f.sent = append(*f.sent, topic+": "+m.Title+" · "+m.Body)
+	return nil
 }
 
 // the tests' clock: madrid, stopped on wednesday 2026-10-14 at 18:45, the day
@@ -47,8 +62,8 @@ func testApp(t *testing.T) (http.Handler, services) {
 		t.Fatalf("Migrate: %v", err)
 	}
 	st := store.New(db)
-	svc := services{Users: service.NewUsers(st), Areas: service.NewAreas(st), Tasks: service.NewTasks(st), Moods: service.NewMoods(st)}
-	s, err := New(Config{Users: svc.Users, Areas: svc.Areas, Tasks: svc.Tasks, Moods: svc.Moods, Loc: testLoc, Now: testNow})
+	svc := services{Users: service.NewUsers(st), Areas: service.NewAreas(st), Tasks: service.NewTasks(st), Moods: service.NewMoods(st), Sent: &[]string{}}
+	s, err := New(Config{Users: svc.Users, Areas: svc.Areas, Tasks: svc.Tasks, Moods: svc.Moods, Notifier: service.NewNotifier(fakeNtfy{svc.Sent}), Loc: testLoc, Now: testNow})
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
