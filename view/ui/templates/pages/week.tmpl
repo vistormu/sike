@@ -5,10 +5,21 @@
 {{ define "content" }}
 <div class="flex h-full flex-col">
     {{ template "partials/header" (dict "Title" "Week" "Sub" .Sub "Prev" .Prev "Next" .Next "This" .This "New" "+ New task" "Href" "/week/new") }}
-    <div class="flex border-b border-divider pr-4">
+    <div class="flex pr-4">
         <div class="w-16 shrink-0"></div>
         {{- range .Days }}
         <div class="min-w-0 flex-1">{{ template "components/day_head" (dict "Day" .Day "Date" .Date "Today" .Today) }}</div>
+        {{- end }}
+    </div>
+    {{- /* the chip lane: what has no hours, under its day */}}
+    <div class="flex border-b border-divider pr-4 pb-2">
+        <div class="w-16 shrink-0"></div>
+        {{- range .Days }}
+        <div class="flex min-w-0 flex-1 flex-col gap-1 px-1">
+            {{- range .Chips }}
+            {{ template "components/chip" (dict "Text" .Text "Color" .Color "Due" .Due "Href" .Href) }}
+            {{- end }}
+        </div>
         {{- end }}
     </div>
     <div class="min-h-0 flex-1 overflow-y-auto" data-timeline data-from="{{ .From }}" data-span="{{ .Span }}">

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"html"
 	"net/http"
 	"regexp"
 	"strings"
@@ -154,5 +155,48 @@ func TestWeekOverlap(t *testing.T) {
 	want := []string{"Work 0.0000+100.0000 0px", "Dentist 0.0000+100.0000 40px", "Gym 0.0000+50.0000 0px", "Call 50.0000+50.0000 0px"}
 	if strings.Join(got, ", ") != strings.Join(want, ", ") {
 		t.Errorf("blocks = %q\nwant      %q", got, want)
+	}
+}
+
+var chipRe = regexp.MustCompile(`<a href="(/week/\d+)" data-task class="inline-flex[^"]*" style="--fill: var\(--task-(\w+)\)"><span class="truncate">([^<]+)</span></a>`)
+
+// dated tasks on the week (figma): the dentist on the timeline, inside work;
+// the birthday and the deadlines as chips; a stretch a chip on each of its days.
+func TestWeekDated(t *testing.T) {
+	h, svc := testApp(t)
+	you, _ := svc.Users.Add(context.Background(), "You", "🦊")
+	weekly(t, svc, you.ID, "Work", "sky", model.DaysOf(time.Wednesday), 9*60, 17*60)
+	dated(t, svc, you.ID, "Dentist", "coral", "2026-10-14 2026-10-14 11:00 12:00")
+	dated(t, svc, you.ID, "🎂 Ana's birthday", "pink", "2026-10-14 2026-10-14 - -")
+	dated(t, svc, you.ID, "Report", "sky", "- 2026-10-14 - 14:00")
+	dated(t, svc, you.ID, "Taxes", "apricot", "- 2026-10-16 - -")
+	dated(t, svc, you.ID, "Trip", "lime", "2026-10-17 2026-10-20 - -")
+	dated(t, svc, you.ID, "Taxi", "mint", "2026-10-13 2026-10-13 05:30 06:00")
+	dated(t, svc, you.ID, "Later", "pink", "2026-10-21 2026-10-21 09:00 10:00") // next week
+	page := body(t, get(h, "/week", &http.Cookie{Name: userCookieName, Value: "1"}))
+
+	var chips []string
+	for _, m := range chipRe.FindAllStringSubmatch(page, -1) {
+		chips = append(chips, html.UnescapeString(m[3])+"/"+m[2])
+	}
+	// wed: all day first, then due; fri: due (coral, whatever the area); sat, sun: the trip
+	want := "🎂 Ana's birthday/pink, Report · due 14:00/coral, Taxes · due/coral, Trip/lime, Trip/lime"
+	if strings.Join(chips, ", ") != want {
+		t.Errorf("chips = %q\nwant    %s", strings.Join(chips, ", "), want)
+	}
+
+	var blocks []string
+	for _, b := range blockRe.FindAllStringSubmatch(page, -1) {
+		blocks = append(blocks, b[8]+" "+b[4]+"px")
+	}
+	// the taxi stretches the hours to 05:00; on wed the dentist nests in work
+	if want := "Taxi 0px, Work 0px, Dentist 40px"; strings.Join(blocks, ", ") != want {
+		t.Errorf("blocks = %q, want %s", strings.Join(blocks, ", "), want)
+	}
+	if !strings.Contains(page, `data-from="5" data-span="17"`) {
+		t.Error("the hours do not run 05–22 (the taxi stretches them; a deadline's hour does not)")
+	}
+	if strings.Contains(page, "Later") {
+		t.Error("next week's task shows")
 	}
 }

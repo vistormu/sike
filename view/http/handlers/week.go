@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"sike/domain/clock"
@@ -10,8 +11,10 @@ import (
 	"sike/domain/service"
 )
 
-// Week is the week tab: a person's routines on a seven-day timeline, opening
-// on this week (?date= shows the week of that day).
+// Week is the week tab: a person's routines and timed dated tasks on a
+// seven-day timeline, what has no hours (all day, due, a stretch) as chips in
+// the lane under the day heads; it opens on this week (?date= shows the week
+// of that day).
 type Week struct {
 	R     Renderer
 	Frame Frame
@@ -36,6 +39,7 @@ type hourLine struct {
 type weekDay struct {
 	Day, Date string // "Wed", "14"
 	Today     bool
+	Chips     []weekChip // all day, due, a day of a stretch: the lane
 	Blocks    []weekBlock
 	Now       string // the now-line's top (%); "" when it is not on this day
 	Minute    int    // now, in minutes after midnight, for app.js to move it on
@@ -46,6 +50,11 @@ type weekBlock struct {
 	Top, Height             string // % of the timeline
 	Left, Width             string // % of the day's column (clock.Layout)
 	Inset                   int    // px from the left: nesting
+}
+
+type weekChip struct {
+	Text, Color, Href string
+	Due               bool
 }
 
 // nestInset is how far a nested block sits in from what holds it (figma: 40px).
@@ -84,7 +93,32 @@ func (h Week) Page(w http.ResponseWriter, r *http.Request, opts ...Option) {
 		weekly = append(weekly, p.Weekly())
 		taskOf[p.ID] = byID[p.TaskID]
 	}
-	occs := clock.Expand(weekly, monday, end)
+	var dated []clock.Dated
+	for _, t := range tasks {
+		if t.Date != nil {
+			dated = append(dated, t.Date.Clock(t.ID))
+		}
+	}
+	// a block on the timeline: a placement's occurrence, or a timed dated one
+	type item struct {
+		occ  clock.Occurrence
+		task model.Task
+	}
+	var timed []item
+	var occs []clock.Occurrence
+	for _, o := range clock.Expand(weekly, monday, end) {
+		timed = append(timed, item{o, taskOf[o.Ref]})
+		occs = append(occs, o)
+	}
+	var chips []item
+	for _, o := range clock.ExpandDated(dated, monday, end) {
+		if o.Kind == clock.Timed {
+			timed = append(timed, item{o, byID[o.Ref]})
+			occs = append(occs, o)
+		} else {
+			chips = append(chips, item{o, byID[o.Ref]})
+		}
+	}
 	from, to := clock.HourRange(occs)
 	span := to - from
 	pct := func(t clock.Time) float64 { return float64(int(t)-from*60) / float64(span*60) * 100 }
@@ -102,16 +136,27 @@ func (h Week) Page(w http.ResponseWriter, r *http.Request, opts ...Option) {
 	}
 	for d := monday; d.Before(end); d = d.AddDays(1) {
 		wd := weekDay{Day: d.Weekday().String()[:3], Date: fmt.Sprint(d.Day), Today: d == today}
-		var day []clock.Occurrence
-		for _, o := range occs {
-			if o.Date == d {
-				day = append(day, o)
+		for _, c := range chips {
+			if c.occ.Date != d {
+				continue
+			}
+			chip := weekChip{Text: c.task.Name, Color: c.task.Color, Href: fmt.Sprintf("/week/%d", c.task.ID)}
+			if c.occ.Kind == clock.Deadline {
+				chip.Due, chip.Text = true, strings.TrimSpace(c.task.Name+" · due "+c.occ.End.String())
+			}
+			wd.Chips = append(wd.Chips, chip)
+		}
+		var day []item
+		var spans []clock.Occurrence
+		for _, it := range timed {
+			if it.occ.Date == d {
+				day = append(day, it)
+				spans = append(spans, it.occ)
 			}
 		}
-		slots, order := clock.Layout(day)
+		slots, order := clock.Layout(spans)
 		for _, i := range order { // what is nested is drawn over what holds it
-			o, sl := day[i], slots[i]
-			t := taskOf[o.Ref]
+			o, sl, t := day[i].occ, slots[i], day[i].task
 			wd.Blocks = append(wd.Blocks, weekBlock{
 				Name: t.Name, Color: t.Color, Href: fmt.Sprintf("/week/%d", t.ID),
 				Time: o.Start.String() + "–" + o.End.String(),
