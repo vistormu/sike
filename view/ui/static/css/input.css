@@ -1,0 +1,130 @@
+/* the figma foundations (docs/design/figma.md), under figma's code-syntax names.
+   change a value here only after changing it in figma. */
+
+@import "tailwindcss" source(none);
+@source "../../templates";
+@source "../../../http";
+@source "../js/app.js";
+
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/static/fonts/space-grotesk-latin-500-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/static/fonts/space-grotesk-latin-700-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Space Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/static/fonts/space-mono-latin-400-normal.woff2") format("woff2");
+}
+
+/* static: every variable ships, used or not. task colors are picked per task at
+   runtime (var(--task-…)), so no class names them for tailwind to find. */
+@theme static {
+  /* tailwind's defaults out where figma has its own: only figma's exist */
+  --color-*: initial;
+  --font-*: initial;
+  --text-*: initial;
+  --shadow-*: initial;
+  --radius-*: initial;
+
+  /* Palette: primitives. templates use the Theme names below, never these. */
+  --palette-paper: #f7f3ea;
+  --palette-white: #ffffff;
+  --palette-ink: #141414;
+  --palette-ink-soft: #6b6355;
+  --palette-line: #e4dccb;
+  --palette-butter: #f6de8a;
+  --palette-red: #e5484d;
+  --palette-lavender: #c9b8f5;
+  --palette-sky: #a9cbf2;
+  --palette-apricot: #f8c08a;
+  --palette-coral: #f4a3a0;
+  --palette-mint: #a8e0c8;
+  --palette-pink: #f5b5d3;
+  --palette-lime: #d4e69c;
+
+  /* Theme: color/* → bg-bg, text-text, border-border, … */
+  --color-bg: var(--palette-paper);
+  --color-surface: var(--palette-white);
+  --color-text: var(--palette-ink);
+  --color-text-muted: var(--palette-ink-soft);
+  --color-border: var(--palette-ink);
+  --color-divider: var(--palette-line);
+  --color-accent: var(--palette-butter);
+  --color-danger: var(--palette-red);
+
+  /* Theme: task/* (the seven areas) */
+  --task-lavender: var(--palette-lavender);
+  --task-sky: var(--palette-sky);
+  --task-apricot: var(--palette-apricot);
+  --task-coral: var(--palette-coral);
+  --task-mint: var(--palette-mint);
+  --task-lime: var(--palette-lime);
+  --task-pink: var(--palette-pink);
+
+  /* Size: space/* and stroke/*. --spacing is the 4px step, so p-N is --space-N
+     (p-1 4 · p-2 8 · p-3 12 · p-4 16 · p-6 24 · p-8 32), and border /
+     border-2 are --stroke-thin / --stroke-thick. */
+  --spacing: 4px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --stroke-thin: 1px;
+  --stroke-thick: 2px;
+
+  /* text styles → text-display, text-title, text-body, text-strong, text-label,
+     text-mono. label also needs `uppercase`, mono also needs `font-mono`. */
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, monospace;
+
+  --text-display: 32px;
+  --text-display--line-height: 36px;
+  --text-display--letter-spacing: -0.01em;
+  --text-display--font-weight: 700;
+  --text-title: 20px;
+  --text-title--line-height: 24px;
+  --text-title--font-weight: 700;
+  --text-body: 15px;
+  --text-body--line-height: 20px;
+  --text-body--font-weight: 500;
+  --text-strong: 13px;
+  --text-strong--line-height: 16px;
+  --text-strong--font-weight: 700;
+  --text-label: 11px;
+  --text-label--line-height: 14px;
+  --text-label--letter-spacing: 0.08em;
+  --text-label--font-weight: 700;
+  --text-mono: 11px;
+  --text-mono--line-height: 14px;
+  --text-mono--font-weight: 400;
+
+  /* effect style shadow/raised → shadow-raised. only the primary button of a view. */
+  --shadow-raised: 3px 3px 0 var(--color-border);
+}
+
+@layer base {
+  body {
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    font-weight: var(--text-body--font-weight);
+  }
+}
