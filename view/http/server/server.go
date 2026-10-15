@@ -6,8 +6,11 @@ import (
 	"log"
 	"net/http"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
+
+	"sike/view/ui"
 )
 
 type Config struct {
@@ -16,17 +19,28 @@ type Config struct {
 
 type Server struct {
 	http *http.Server
+	rd   *renderer
 }
 
-func New(cfg Config) *Server {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /{$}", home)
+// New parses every template up front: a broken template fails the boot, not a
+// request.
+func New(cfg Config) (*Server, error) {
+	rd, err := newRenderer()
+	if err != nil {
+		return nil, err
+	}
+	s := &Server{rd: rd}
 
-	return &Server{http: &http.Server{
+	mux := http.NewServeMux()
+	mux.Handle("GET /static/", noListing(http.StripPrefix("/static/", http.FileServerFS(ui.Static()))))
+	mux.HandleFunc("GET /{$}", s.home)
+
+	s.http = &http.Server{
 		Addr:              cfg.Addr,
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
-	}}
+	}
+	return s, nil
 }
 
 // Run serves until the context ends or the process gets SIGINT/SIGTERM, then
@@ -55,13 +69,17 @@ func (s *Server) Run(ctx context.Context) error {
 	return s.http.Shutdown(shutdownCtx)
 }
 
-// home is a placeholder until m1 brings templates.
-func home(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write([]byte(`<!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>sike</title></head>
-<body>sike</body>
-</html>
-`))
+// noListing 404s directory paths, so /static/ never lists its files.
+func noListing(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/") {
+			http.NotFound(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (s *Server) home(w http.ResponseWriter, r *http.Request) {
+	s.rd.render(w, "home", nil)
 }

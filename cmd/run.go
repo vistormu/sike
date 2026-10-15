@@ -15,9 +15,12 @@ func runCmd() *cobra.Command {
   SIKE_ADDR=:3000 sike run`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			srv := server.New(server.Config{
+			srv, err := server.New(server.Config{
 				Addr: getenv("SIKE_ADDR", ":8090"),
 			})
+			if err != nil {
+				return err
+			}
 			return srv.Run(cmd.Context())
 		},
 	}
