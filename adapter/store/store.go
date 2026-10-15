@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net/url"
+	"os"
 	"sync/atomic"
 
 	"github.com/jmoiron/sqlx"
@@ -119,4 +120,15 @@ func isUnique(err error) bool {
 func isForeignKey(err error) bool {
 	var se *sqlite.Error
 	return errors.As(err, &se) && se.Code() == sqlite3.SQLITE_CONSTRAINT_FOREIGNKEY
+}
+
+// Backup writes a consistent copy of db to path, which must not exist (sqlite's
+// VACUUM INTO): safe while the server writes, unlike copying the file and its
+// wal.
+func Backup(ctx context.Context, db *sqlx.DB, path string) error {
+	if _, err := os.Stat(path); err == nil {
+		return fmt.Errorf("backup: %s exists", path)
+	}
+	_, err := db.ExecContext(ctx, `VACUUM INTO ?`, path)
+	return err
 }

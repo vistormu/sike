@@ -44,6 +44,7 @@ nonroot (65532), keeps the db in `/data`, and checks itself with `sike health`.
 | ---------- | -------------------- |
 | `sike run` | start the web server (migrates the db on boot) |
 | `sike migrate` | apply pending migrations, print the version |
+| `sike backup <file>` | a consistent copy of the db while the server runs (sqlite `VACUUM INTO`); the homelab takes one before each upgrade |
 | `sike health` | ask the server on `SIKE_ADDR` whether it is up and its db answers (`/healthz`); exit 1 if not |
 | `sike --version` | the version it was built as (`dev` outside the image) |
 | `sike op user add <name> <emoji>` | add a person (the emoji is one of the 30 animals) |

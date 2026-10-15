@@ -23,7 +23,7 @@ func Execute() {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
-	root.AddCommand(runCmd(), migrateCmd(), healthCmd(), opCmd())
+	root.AddCommand(runCmd(), migrateCmd(), backupCmd(), healthCmd(), opCmd())
 
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
