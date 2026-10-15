@@ -48,3 +48,29 @@ func (d Dates) AllDay() bool { return !d.From.IsZero() && d.Start == clock.NoTim
 func (d Dates) Clock(ref int64) clock.Dated {
 	return clock.Dated{Ref: ref, From: d.From, To: d.To, Start: d.Start, End: d.End}
 }
+
+// Over: by today at minute now, the dated task has gone by: its last day is
+// behind, or it is today and its end hour has passed. a day with no end hour
+// lasts until midnight.
+func (d Dates) Over(today clock.Date, now clock.Time) bool {
+	switch {
+	case d.To.Before(today):
+		return true
+	case d.To != today:
+		return false
+	}
+	return d.End != clock.NoTime && now >= d.End
+}
+
+// Shows is the day a dated task belongs to from today on: its first day (a
+// deadline's day), or today while a stretch that began before goes on.
+func (d Dates) Shows(today clock.Date) clock.Date {
+	first := d.From
+	if first.IsZero() {
+		first = d.To
+	}
+	if first.Before(today) {
+		return today
+	}
+	return first
+}

@@ -6,7 +6,9 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
+	"sike/domain/clock"
 	"sike/domain/model"
 	"sike/domain/service"
 )
@@ -61,13 +63,16 @@ type Page func(w http.ResponseWriter, r *http.Request, opts ...Option)
 // Frame builds the shell for the person in a request: it knows the counts.
 type Frame struct {
 	Tasks *service.Tasks
+	Loc   *time.Location // upcoming counts what has not gone by
+	Now   func() time.Time
 }
 
 // tabOf is the tab each when puts a task in (decisions/0005).
 var tabOf = map[model.When]string{model.Weekly: "week", model.Dated: "upcoming", model.Pending: "pending", model.Someday: "someday"}
 
-// countedTabs: the tabs whose sidebar item shows how many tasks they hold.
-var countedTabs = map[model.When]string{model.Pending: "pending", model.Someday: "someday"}
+// countedTabs: the tabs whose sidebar item shows how many tasks they hold
+// (upcoming: those that have not gone by).
+var countedTabs = map[model.When]string{model.Dated: "upcoming", model.Pending: "pending", model.Someday: "someday"}
 
 // Shell also brings the undo toast after a delete: the tab opens with
 // ?deleted=<id> while that task can still be undone.
@@ -77,8 +82,13 @@ func (f Frame) Shell(r *http.Request, tab string) (Option, error) {
 	if err != nil {
 		return nil, err
 	}
+	now := f.Now().In(f.Loc)
+	today, minute := clock.DateOf(now), clock.Time(now.Hour()*60+now.Minute())
 	counts := map[string]int{}
 	for _, t := range tasks {
+		if t.Date != nil && t.Date.Over(today, minute) {
+			continue
+		}
 		if name, ok := countedTabs[t.When]; ok {
 			counts[name]++
 		}

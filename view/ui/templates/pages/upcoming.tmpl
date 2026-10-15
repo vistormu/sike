@@ -1,0 +1,28 @@
+{{/* upcoming: dated tasks by period, nearest first; what has gone by in the
+     collapsed "Past" (a <details>: no js). */}}
+{{ define "content" }}
+<div class="flex min-h-full flex-col">
+    {{ template "partials/header" (dict "Title" "Upcoming" "New" "+ New task" "Href" "/upcoming/new") }}
+    <div class="flex flex-col gap-6 px-4 pt-4 pb-6 md:w-176 md:px-8 md:pt-6">
+        {{- range .Groups }}
+        <section class="flex flex-col">
+            <h2 class="pb-1 text-label text-text-muted uppercase">{{ .Name }}</h2>
+            {{- range .Rows }}
+            {{ template "components/row" (dict "Name" .Name "Color" .Color "Meta" .Meta "Near" .Near "Href" .Href) }}
+            {{- end }}
+        </section>
+        {{- end }}
+        {{- with .Past }}
+        <details class="group flex flex-col">
+            <summary class="flex cursor-pointer list-none items-center gap-2 pb-1 text-label text-text-muted uppercase [&::-webkit-details-marker]:hidden">Past · {{ len . }}<span class="text-strong normal-case group-open:hidden">›</span><span class="hidden text-strong normal-case group-open:inline">⌄</span></summary>
+            {{- range . }}
+            {{ template "components/row" (dict "Name" .Name "Color" .Color "Meta" .Meta "Href" .Href "Past" true) }}
+            {{- end }}
+        </details>
+        {{- end }}
+    </div>
+    {{- if not .Groups }}
+    <p class="flex flex-1 items-center justify-center text-title text-text-muted">Nothing coming up</p>
+    {{- end }}
+</div>
+{{ end }}

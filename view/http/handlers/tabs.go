@@ -2,16 +2,14 @@ package handlers
 
 import "net/http"
 
-// Tabs serves the tabs that have no page of their own yet (upcoming), and
-// settings: the shell and the header.
+// Tabs serves settings until it has its own page (m23): the shell and the
+// header.
 type Tabs struct {
 	R     Renderer
 	Frame Frame
 }
 
-var titles = map[string]string{
-	"upcoming": "Upcoming", "settings": "Settings",
-}
+var titles = map[string]string{"settings": "Settings"}
 
 // Tab renders the tab named by the path; settings is no tab.
 func (h Tabs) Tab(name string) http.HandlerFunc {
