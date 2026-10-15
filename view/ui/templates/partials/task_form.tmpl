@@ -1,0 +1,40 @@
+{{/* the task form over a tab: desktop, a 480px side panel on a scrim (click
+     it to close); phone, the whole screen with ‹ and Save in its header. */}}
+{{ define "partials/task_form" -}}
+<div class="fixed inset-0 flex md:bg-text/25">
+    <a href="{{ .Close }}" class="hidden flex-1 md:block" aria-label="Close"></a>
+    <form method="post" action="{{ .Action }}" class="flex h-dvh w-full flex-col bg-bg md:w-120 md:border-l-2 md:border-border">
+        <div class="flex items-center justify-between border-b-2 border-border px-4 pt-6 pb-4 md:hidden">
+            {{ template "components/button" (dict "Glyph" "‹" "Href" .Close) }}
+            <h1 class="text-title">Task</h1>
+            {{ template "components/button" (dict "Label" "Save" "Primary" true "Submit" true) }}
+        </div>
+        <div class="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 pt-4 pb-6 md:p-6">
+            <div class="hidden items-center justify-between md:flex">
+                <h1 class="text-display">Task</h1>
+                {{ template "components/button" (dict "Glyph" "×" "Href" .Close) }}
+            </div>
+            {{ template "components/field" (dict "Label" "Name" "Name" "name" "Value" .Name "Autofocus" true) }}
+            <fieldset class="flex flex-col">
+                <legend class="mb-2 text-label text-text-muted uppercase">Area</legend>
+                <div class="grid grid-cols-4 gap-x-3 gap-y-2 md:grid-cols-[repeat(3,99px)]">
+                    {{- range .Areas }}
+                    {{ template "components/area_option" (dict "Name" "area" "Value" .Color "Label" .Name "Color" .Color "Selected" (eq .Color $.Color)) }}
+                    {{- end }}
+                </div>
+            </fieldset>
+            <fieldset class="flex flex-col">
+                <legend class="mb-2 text-label text-text-muted uppercase">When</legend>
+                <div class="flex border-2 border-border bg-surface">
+                    {{- range .Whens }}
+                    {{ template "components/segment" (dict "Name" "when" "Value" .Value "Label" .Label "Active" (eq .Value $.When)) }}
+                    {{- end }}
+                </div>
+            </fieldset>
+            <div class="mt-auto hidden justify-end md:flex">
+                {{ template "components/button" (dict "Label" "Save" "Primary" true "Submit" true) }}
+            </div>
+        </div>
+    </form>
+</div>
+{{- end }}

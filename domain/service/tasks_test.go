@@ -71,3 +71,15 @@ func TestMoveTask(t *testing.T) {
 		t.Errorf("move to weekly (not yet): err = %v", err)
 	}
 }
+
+func TestTaskWhens(t *testing.T) {
+	s := NewTasks(&fakeTasks{})
+	got := s.Whens()
+	if len(got) != 2 || got[0] != model.Pending || got[1] != model.Someday {
+		t.Fatalf("Whens = %v, want [pending someday]", got)
+	}
+	got[0] = model.Weekly
+	if s.Whens()[0] != model.Pending {
+		t.Error("Whens hands out the service's own slice")
+	}
+}

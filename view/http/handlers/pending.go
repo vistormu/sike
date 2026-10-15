@@ -15,7 +15,9 @@ type Pending struct {
 	Areas *service.Areas
 }
 
-func (h Pending) Show(w http.ResponseWriter, r *http.Request) {
+func (h Pending) Show(w http.ResponseWriter, r *http.Request) { h.Page(w, r) }
+
+func (h Pending) Page(w http.ResponseWriter, r *http.Request, opts ...Option) {
 	u := UserFrom(r.Context())
 	groups, err := groupByArea(r, h.Tasks, h.Areas, u.ID, model.Pending)
 	if err != nil {
@@ -27,5 +29,5 @@ func (h Pending) Show(w http.ResponseWriter, r *http.Request) {
 		serverError(w, err)
 		return
 	}
-	h.R.Render(w, "pending", map[string]any{"Groups": groups}, shell)
+	h.R.Render(w, "pending", map[string]any{"Groups": groups}, append([]Option{shell}, opts...)...)
 }

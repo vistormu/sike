@@ -15,7 +15,9 @@ type Someday struct {
 	Areas *service.Areas
 }
 
-func (h Someday) Show(w http.ResponseWriter, r *http.Request) {
+func (h Someday) Show(w http.ResponseWriter, r *http.Request) { h.Page(w, r) }
+
+func (h Someday) Page(w http.ResponseWriter, r *http.Request, opts ...Option) {
 	u := UserFrom(r.Context())
 	groups, err := groupByArea(r, h.Tasks, h.Areas, u.ID, model.Someday)
 	if err != nil {
@@ -27,5 +29,5 @@ func (h Someday) Show(w http.ResponseWriter, r *http.Request) {
 		serverError(w, err)
 		return
 	}
-	h.R.Render(w, "someday", map[string]any{"Groups": groups}, shell)
+	h.R.Render(w, "someday", map[string]any{"Groups": groups}, append([]Option{shell}, opts...)...)
 }

@@ -1,5 +1,5 @@
 {{/* the tabs share this page until each gets its own (week m16, upcoming m19,
      settings m23). */}}
 {{ define "content" }}
-{{ template "partials/header" .Title }}
+{{ template "partials/header" (dict "Title" .Title) }}
 {{ end }}

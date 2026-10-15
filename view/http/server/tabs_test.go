@@ -52,8 +52,9 @@ func TestTabs(t *testing.T) {
 			if !strings.Contains(page, "🦊") || !strings.Contains(page, "You") || strings.Count(page, `href="/settings"`) != 2 {
 				t.Errorf("the profile (emoji, name, two links to settings) is missing")
 			}
-			// active = the butter fill, once in each nav
-			if n := strings.Count(page, "bg-accent"); tt.active != "" && n != 2 || tt.active == "" && n != 0 {
+			// active = the bordered butter fill, once in each nav (a primary
+			// button is butter too, without the border)
+			if n := strings.Count(page, "border-border bg-accent"); tt.active != "" && n != 2 || tt.active == "" && n != 0 {
 				t.Errorf("%d active items, want %d", n, map[bool]int{true: 2, false: 0}[tt.active != ""])
 			}
 		})

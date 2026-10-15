@@ -1,6 +1,6 @@
 {{ define "content" }}
 <div class="flex min-h-full flex-col">
-    {{ template "partials/header" "Someday" }}
+    {{ template "partials/header" (dict "Title" "Someday" "New" "+ New wish" "Href" "/someday/new") }}
     {{- with .Groups }}
     <div class="flex flex-col gap-2 px-4 pb-6 md:px-8 md:pt-2">
         {{- range . }}

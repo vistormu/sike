@@ -49,6 +49,11 @@ func New(cfg Config) (*Server, error) {
 	mux.Handle("GET /pending", people.Require(http.HandlerFunc(pending.Show)))
 	someday := handlers.Someday{R: rd, Frame: frame, Tasks: cfg.Tasks, Areas: cfg.Areas}
 	mux.Handle("GET /someday", people.Require(http.HandlerFunc(someday.Show)))
+	form := handlers.TaskForm{Tasks: cfg.Tasks, Areas: cfg.Areas}
+	for tab, page := range map[string]handlers.Page{"pending": pending.Page, "someday": someday.Page} {
+		mux.Handle("GET /"+tab+"/new", people.Require(form.New(tab, page)))
+		mux.Handle("POST /"+tab+"/new", people.Require(form.Create(tab, page)))
+	}
 	mux.HandleFunc("GET /who", people.Who)
 	mux.HandleFunc("GET /who/new", people.New)
 	mux.HandleFunc("POST /who/new", people.Create)

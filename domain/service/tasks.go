@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -45,6 +46,10 @@ func (s *Tasks) Add(ctx context.Context, userID int64, name, color string, when 
 	}
 	return s.store.CreateTask(ctx, model.Task{UserID: userID, Name: name, Color: color, When: when})
 }
+
+// Whens are the places a task can be put, in tab order: the task form offers
+// these.
+func (s *Tasks) Whens() []model.When { return slices.Clone(whens) }
 
 // List returns a person's tasks: by when, then area (palette order), then
 // position.

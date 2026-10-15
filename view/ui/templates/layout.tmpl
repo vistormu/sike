@@ -11,6 +11,9 @@
 </head>
 <body>
     {{ if .Shell }}{{ template "partials/shell" . }}{{ else }}{{ template "content" .Page }}{{ end }}
+    {{- with .Form }}
+    {{ template "partials/task_form" . }}
+    {{- end }}
     {{- with .Toast }}
     <div class="fixed inset-x-4 bottom-4 mx-auto max-w-[358px]">{{ template "components/toast" . }}</div>
     {{- end }}

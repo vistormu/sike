@@ -21,6 +21,7 @@ type View struct {
 	Status int
 	Toast  *Toast
 	Shell  *Shell
+	Form   *taskForm
 }
 
 type Option func(*View)
@@ -48,10 +49,21 @@ func WithShell(u model.User, tab string, counts map[string]int) Option {
 	}
 }
 
+// WithForm opens the task form over the page.
+func WithForm(f taskForm) Option {
+	return func(v *View) { v.Form = &f }
+}
+
+// Page renders a tab with extra options: the task form opens over it.
+type Page func(w http.ResponseWriter, r *http.Request, opts ...Option)
+
 // Frame builds the shell for the person in a request: it knows the counts.
 type Frame struct {
 	Tasks *service.Tasks
 }
+
+// tabOf is the tab each when puts a task in (decisions/0005).
+var tabOf = map[model.When]string{model.Weekly: "week", model.Dated: "upcoming", model.Pending: "pending", model.Someday: "someday"}
 
 // countedTabs: the tabs whose sidebar item shows how many tasks they hold.
 var countedTabs = map[model.When]string{model.Pending: "pending", model.Someday: "someday"}
