@@ -79,7 +79,8 @@ func New(cfg Config) (*Server, error) {
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		if cfg.Ping != nil {
 			if err := cfg.Ping(r.Context()); err != nil {
-				http.Error(w, "db: "+err.Error(), http.StatusServiceUnavailable)
+				log.Printf("healthz: %v", err)
+				http.Error(w, "db unavailable", http.StatusServiceUnavailable)
 				return
 			}
 		}

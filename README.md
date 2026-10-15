@@ -75,5 +75,5 @@ nonroot (65532), keeps the db in `/data`, and checks itself with `sike health`.
 | `SIKE_ADDR` | `:8090` | listen address    |
 | `SIKE_DB`   | `sike.db` | sqlite database file, created if missing |
 | `SIKE_TZ`   | `Europe/Madrid` | the timezone every time is wall-clock in |
-| `SIKE_NTFY_URL` | (none: notifications off) | the ntfy server, `https://ntfy.vistormu.dev` |
+| `SIKE_NTFY_URL` | (none: notifications off) | the ntfy server, like `https://ntfy.example.com` |
 | `SIKE_NTFY_TOKEN` | (none) | an ntfy access token (`tk_…`) with write access to the people's topics |
