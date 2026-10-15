@@ -45,6 +45,7 @@ dev pages: `/dev/components` shows every component variant (compare with figma),
 | `sike op task rm <user-id> <task-id>` | delete a task: done |
 | `sike op task restore <user-id> <task-id>` | undo a delete (only a person's last one) |
 | `sike op task move <user-id> <task-id> <when>` | move a task to pending or someday, on top |
+| `sike op week show [--date YYYY-MM-DD]` | a week (today's by default): its days and the timeline's hours |
 
 ## env
 
@@ -52,3 +53,4 @@ dev pages: `/dev/components` shows every component variant (compare with figma),
 | ----------- | ------- | ----------------- |
 | `SIKE_ADDR` | `:8090` | listen address    |
 | `SIKE_DB`   | `sike.db` | sqlite database file, created if missing |
+| `SIKE_TZ`   | `Europe/Madrid` | the timezone every time is wall-clock in |
