@@ -17,11 +17,13 @@ func opTaskCmd() *cobra.Command {
 	}
 
 	var area, when string
+	var at []string
 	add := &cobra.Command{
 		Use:   "add <user-id> <name>",
 		Short: "add a task, on top of its place in time",
 		Example: `  sike op task add 1 "Fix bike" --area Home
-  sike op task add 1 "Learn piano" --area lavender --when someday`,
+  sike op task add 1 "Learn piano" --area lavender --when someday
+  sike op task add 1 Gym --area Body --when weekly --at "mon,wed 18:00-19:30"`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			userID, err := parseID(args[0])
@@ -37,7 +39,11 @@ func opTaskCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			t, err := svc.tasks.Add(cmd.Context(), userID, args[1], color, model.When(when))
+			places, err := parsePlaces(at)
+			if err != nil {
+				return err
+			}
+			t, err := svc.tasks.Add(cmd.Context(), userID, args[1], color, model.When(when), places)
 			if err != nil {
 				return err
 			}
@@ -46,7 +52,8 @@ func opTaskCmd() *cobra.Command {
 		},
 	}
 	add.Flags().StringVar(&area, "area", "", "the area: its color or its name (required)")
-	add.Flags().StringVar(&when, "when", string(model.Pending), "pending or someday")
+	add.Flags().StringVar(&when, "when", string(model.Pending), "weekly, pending or someday")
+	add.Flags().StringArrayVar(&at, "at", nil, `a weekly time, "mon,wed 18:00-19:30" (repeat it for more)`)
 	_ = add.MarkFlagRequired("area")
 
 	list := &cobra.Command{
@@ -77,6 +84,16 @@ func opTaskCmd() *cobra.Command {
 			}
 			for _, t := range tasks {
 				fmt.Fprintf(cmd.OutOrStdout(), "%d  %-8s  %-8s  %s\n", t.ID, t.When, names[t.Color], t.Name)
+				if t.When != model.Weekly {
+					continue
+				}
+				places, err := svc.tasks.Placements(cmd.Context(), userID, t.ID)
+				if err != nil {
+					return err
+				}
+				for _, p := range places {
+					fmt.Fprintf(cmd.OutOrStdout(), "     %s\n", formatPlace(p))
+				}
 			}
 			return nil
 		},
@@ -120,7 +137,7 @@ func opTaskCmd() *cobra.Command {
 
 	move := &cobra.Command{
 		Use:     "move <user-id> <task-id> <when>",
-		Short:   "put a task in another place in time (pending or someday), on top",
+		Short:   "put a task in pending or someday, on top (weekly needs times: edit)",
 		Example: `  sike op task move 1 4 someday`,
 		Args:    cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -138,11 +155,13 @@ func opTaskCmd() *cobra.Command {
 	}
 
 	var name, editArea, editWhen string
+	var editAt []string
 	edit := &cobra.Command{
 		Use:   "edit <user-id> <task-id>",
-		Short: "change a task's name, area or when; a new when puts it on top there",
+		Short: "change a task's name, area, when or weekly times; a new when puts it on top there",
 		Example: `  sike op task edit 1 4 --name "Fix the bike"
-  sike op task edit 1 4 --area Fun --when someday`,
+  sike op task edit 1 4 --area Fun --when someday
+  sike op task edit 1 4 --when weekly --at "sat 10:00-12:00"`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			userID, id, err := parseIDs(args[0], args[1])
@@ -169,7 +188,16 @@ func opTaskCmd() *cobra.Command {
 			if cmd.Flags().Changed("when") {
 				t.When = model.When(editWhen)
 			}
-			t, err = svc.tasks.Edit(cmd.Context(), userID, id, t.Name, t.Color, t.When)
+			places, err := svc.tasks.Placements(cmd.Context(), userID, id)
+			if err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("at") {
+				if places, err = parsePlaces(editAt); err != nil {
+					return err
+				}
+			}
+			t, err = svc.tasks.Edit(cmd.Context(), userID, id, t.Name, t.Color, t.When, places)
 			if err != nil {
 				return err
 			}
@@ -179,8 +207,9 @@ func opTaskCmd() *cobra.Command {
 	}
 	edit.Flags().StringVar(&name, "name", "", "the new name")
 	edit.Flags().StringVar(&editArea, "area", "", "the new area: its color or its name")
-	edit.Flags().StringVar(&editWhen, "when", "", "pending or someday")
-	edit.MarkFlagsOneRequired("name", "area", "when")
+	edit.Flags().StringVar(&editWhen, "when", "", "weekly, pending or someday")
+	edit.Flags().StringArrayVar(&editAt, "at", nil, `replaces the weekly times: "mon,wed 18:00-19:30" (repeat it for more)`)
+	edit.MarkFlagsOneRequired("name", "area", "when", "at")
 
 	task.AddCommand(add, list, edit, rm, restore, move)
 	return task
@@ -213,6 +242,18 @@ func (s taskSvc) areaColor(cmd *cobra.Command, userID int64, area string) (strin
 		names = append(names, a.Name)
 	}
 	return "", fmt.Errorf("no area %q: pick one of %s, or a color", area, strings.Join(names, ", "))
+}
+
+func parsePlaces(specs []string) ([]model.Placement, error) {
+	var places []model.Placement
+	for _, spec := range specs {
+		p, err := parsePlace(spec)
+		if err != nil {
+			return nil, err
+		}
+		places = append(places, p)
+	}
+	return places, nil
 }
 
 func parseIDs(a, b string) (int64, int64, error) {

@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"sike/domain/model"
 )
@@ -25,7 +26,7 @@ func TestTaskFormOpensOverItsTab(t *testing.T) {
 	h, svc := testApp(t)
 	ctx := context.Background()
 	you, _ := svc.Users.Add(ctx, "You", "🦊")
-	if _, err := svc.Tasks.Add(ctx, you.ID, "Fix bike", "mint", model.Pending); err != nil {
+	if _, err := svc.Tasks.Add(ctx, you.ID, "Fix bike", "mint", model.Pending, nil); err != nil {
 		t.Fatal(err)
 	}
 	if err := svc.Areas.Rename(ctx, you.ID, "mint", "House"); err != nil {
@@ -55,9 +56,9 @@ func TestTaskFormOpensOverItsTab(t *testing.T) {
 			if n := strings.Count(page, `name="area"`); n != 7 {
 				t.Errorf("%d area options, want 7", n)
 			}
-			// m11 offers the whens the service takes: no every week, no date yet
-			if strings.Contains(page, "Every week") || strings.Contains(page, "On a date") {
-				t.Error("the form offers a when the service refuses")
+			// the form offers the whens the service takes: no date yet (m18)
+			if !strings.Contains(page, "Every week") || strings.Contains(page, "On a date") {
+				t.Error("the form's whens are not the service's")
 			}
 		})
 	}
@@ -97,7 +98,8 @@ func TestCreateTaskErrors(t *testing.T) {
 	}{
 		{"   ", "sky", "pending", "A task needs a name"},
 		{"Fix bike", "", "someday", "Pick an area"},
-		{"Fix bike", "sky", "weekly", "When is pending or someday"},
+		{"Fix bike", "sky", "weekly", "Pick at least one day"},
+		{"Fix bike", "sky", "date", "When is every week, pending or someday"},
 		{strings.Repeat("a", 81), "sky", "pending", "longer than 80"},
 	}
 	for _, tt := range tests {
@@ -145,7 +147,7 @@ func TestTasksOpenTheirForm(t *testing.T) {
 		name, color string
 		when        model.When
 	}{{"Fix bike", "mint", model.Pending}, {"Learn piano", "pink", model.Someday}} {
-		if _, err := svc.Tasks.Add(ctx, you.ID, x.name, x.color, x.when); err != nil {
+		if _, err := svc.Tasks.Add(ctx, you.ID, x.name, x.color, x.when, nil); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -188,7 +190,7 @@ func TestUpdateTask(t *testing.T) {
 	h, svc := testApp(t)
 	ctx := context.Background()
 	you, _ := svc.Users.Add(ctx, "You", "🦊")
-	fix, _ := svc.Tasks.Add(ctx, you.ID, "Fix bike", "mint", model.Pending)
+	fix, _ := svc.Tasks.Add(ctx, you.ID, "Fix bike", "mint", model.Pending, nil)
 	in := &http.Cookie{Name: userCookieName, Value: "1"}
 
 	// a new when moves it: the redirect follows it to its tab
@@ -226,7 +228,7 @@ func TestDeleteAndUndo(t *testing.T) {
 	ctx := context.Background()
 	you, _ := svc.Users.Add(ctx, "You", "🦊")
 	for _, name := range []string{"Fix bike", "Call the bank"} {
-		if _, err := svc.Tasks.Add(ctx, you.ID, name, "mint", model.Pending); err != nil {
+		if _, err := svc.Tasks.Add(ctx, you.ID, name, "mint", model.Pending, nil); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -274,5 +276,106 @@ func TestDeleteAndUndo(t *testing.T) {
 	}
 	if res := postAs(h, "/pending/9/delete", nil, in); res.StatusCode != http.StatusNotFound {
 		t.Errorf("delete a missing task: %d, want 404", res.StatusCode)
+	}
+}
+
+// weekly: the schedule boxes come back as placements; a box with no days is
+// dropped; the edit form shows them again.
+func TestWeeklyForm(t *testing.T) {
+	h, svc := testApp(t)
+	ctx := context.Background()
+	you, _ := svc.Users.Add(ctx, "You", "🦊")
+	in := &http.Cookie{Name: userCookieName, Value: "1"}
+
+	// a new form has one blank box, and the blank one "+ Add time" copies
+	page := body(t, get(h, "/pending/new", in))
+	for _, want := range []string{`name="place" value="0"`, `name="place" value="__i__"`, `type="time" name="start-0"`, `name="days-0" value="1"`, "Weekly schedule"} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the new form lacks %q", want)
+		}
+	}
+
+	form := url.Values{
+		"name": {"Gym"}, "area": {"apricot"}, "when": {"weekly"},
+		"place":  {"0", "3", "5"},
+		"days-0": {"3", "6"}, "start-0": {"18:00"}, "end-0": {"19:30"}, "notify_start-0": {"on"},
+		"days-3": {"1"}, "start-3": {"07:00"}, "end-3": {"08:00"}, "notify_end-3": {"on"},
+		"start-5": {"12:00"}, "end-5": {"13:00"}, // no days: dropped
+	}
+	res := postAs(h, "/pending/new", form, in)
+	if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/week" {
+		t.Fatalf("create weekly: %d to %q, want 303 to /week", res.StatusCode, res.Header.Get("Location"))
+	}
+	places, _ := svc.Tasks.Placements(ctx, you.ID, 1)
+	if len(places) != 2 {
+		t.Fatalf("%d placements, want 2: %+v", len(places), places)
+	}
+	mon, wedSat := places[0], places[1] // by start
+	if mon.Days != model.DaysOf(time.Monday) || mon.Start.String() != "07:00" || mon.NotifyStart || !mon.NotifyEnd {
+		t.Errorf("monday = %+v", mon)
+	}
+	if wedSat.Days != model.DaysOf(time.Wednesday, time.Saturday) || wedSat.End.String() != "19:30" || !wedSat.NotifyStart {
+		t.Errorf("wed+sat = %+v", wedSat)
+	}
+
+	// the edit form shows them, in order, with their days on
+	// weekly tasks open from the week in m16; until then from any tab
+	page = body(t, get(h, "/pending/1", in))
+	for _, want := range []string{
+		`value="weekly" class="sr-only" checked`,
+		`name="days-0" value="1" class="sr-only" checked`,
+		`name="start-0" value="07:00"`,
+		`name="days-1" value="3" class="sr-only" checked`,
+		`name="days-1" value="6" class="sr-only" checked`,
+		`name="end-1" value="19:30"`,
+	} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the edit form lacks %q", want)
+		}
+	}
+
+	// to pending: the schedule left in the form is ignored, the times go
+	edit := url.Values{"name": {"Gym"}, "area": {"apricot"}, "when": {"pending"}, "place": {"0"}, "days-0": {"1"}, "start-0": {"bad"}}
+	if res := postAs(h, "/pending/1", edit, in); res.StatusCode != http.StatusSeeOther {
+		t.Fatalf("to pending: %d", res.StatusCode)
+	}
+	if places, _ := svc.Tasks.Placements(ctx, you.ID, 1); len(places) != 0 {
+		t.Errorf("a pending task kept %d placements", len(places))
+	}
+}
+
+func TestWeeklyFormErrors(t *testing.T) {
+	h, svc := testApp(t)
+	if _, err := svc.Users.Add(context.Background(), "You", "🦊"); err != nil {
+		t.Fatal(err)
+	}
+	in := &http.Cookie{Name: userCookieName, Value: "1"}
+	tests := []struct {
+		days       []string
+		start, end string
+		toast      string
+	}{
+		{nil, "18:00", "19:00", "Pick at least one day"},
+		{[]string{"1"}, "", "19:00", "A time needs a start and an end"},
+		{[]string{"1"}, "19:00", "18:00", "The end is before the start"},
+		{[]string{"1"}, "7pm", "8pm", "Times are HH:MM"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.toast, func(t *testing.T) {
+			form := url.Values{"name": {"Gym"}, "area": {"apricot"}, "when": {"weekly"}, "place": {"0"},
+				"days-0": tt.days, "start-0": {tt.start}, "end-0": {tt.end}}
+			res := postAs(h, "/pending/new", form, in)
+			if res.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("status %d, want 422", res.StatusCode)
+			}
+			page := body(t, res)
+			if !strings.Contains(page, tt.toast) {
+				t.Errorf("no toast %q", tt.toast)
+			}
+			// as typed
+			if !strings.Contains(page, `name="start-0" value="`+tt.start+`"`) || !strings.Contains(page, `value="weekly" class="sr-only" checked`) {
+				t.Error("the schedule is not as typed")
+			}
+		})
 	}
 }

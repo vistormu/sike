@@ -17,12 +17,16 @@ func opWeekCmd() *cobra.Command {
 
 	var date string
 	show := &cobra.Command{
-		Use:   "show",
-		Short: "print a week: its days and the timeline's hours (SIKE_TZ)",
-		Example: `  sike op week show
-  sike op week show --date 2026-03-29`,
-		Args: cobra.NoArgs,
+		Use:   "show <user-id>",
+		Short: "print a person's week: its days, hours and what repeats in it (SIKE_TZ)",
+		Example: `  sike op week show 1
+  sike op week show 1 --date 2026-03-29`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			userID, err := parseID(args[0])
+			if err != nil {
+				return err
+			}
 			loc, err := location()
 			if err != nil {
 				return err
@@ -36,8 +40,31 @@ func opWeekCmd() *cobra.Command {
 			}
 			monday := day.Monday()
 			sunday := monday.AddDays(6)
-			// placements come with m15: nothing to expand yet
-			occs := clock.Expand(nil, monday, sunday.AddDays(1))
+
+			svc, done, err := taskServices(cmd)
+			if err != nil {
+				return err
+			}
+			defer done()
+			tasks, err := svc.tasks.List(cmd.Context(), userID)
+			if err != nil {
+				return err
+			}
+			places, err := svc.tasks.Week(cmd.Context(), userID)
+			if err != nil {
+				return err
+			}
+			names := map[int64]string{} // task id → name
+			for _, t := range tasks {
+				names[t.ID] = t.Name
+			}
+			var weekly []clock.Weekly
+			name := map[int64]string{} // placement id → its task's name
+			for _, p := range places {
+				weekly = append(weekly, p.Weekly())
+				name[p.ID] = names[p.TaskID]
+			}
+			occs := clock.Expand(weekly, monday, sunday.AddDays(1))
 			from, to := clock.HourRange(occs)
 
 			out := cmd.OutOrStdout()
@@ -51,7 +78,7 @@ func opWeekCmd() *cobra.Command {
 				fmt.Fprintf(out, "%s %s%s\n", d.Weekday().String()[:3], d, mark)
 				for _, o := range occs {
 					if o.Date == d {
-						fmt.Fprintf(out, "    %s–%s  %d\n", o.Start, o.End, o.Ref)
+						fmt.Fprintf(out, "    %s–%s  %s\n", o.Start, o.End, name[o.Ref])
 					}
 				}
 			}

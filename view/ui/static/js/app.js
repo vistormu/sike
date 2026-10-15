@@ -23,3 +23,15 @@ if (undo) {
   history.replaceState(null, "", location.pathname);
   setTimeout(() => undo.parentElement.remove(), 5000);
 }
+
+// "+ Add time" in the task form: one more box in the weekly schedule, copied
+// from its <template> with the next free index.
+document.addEventListener("click", (e) => {
+  const add = e.target.closest("[data-add-time]");
+  if (!add) return;
+  const places = add.closest("[data-places]");
+  const used = [...places.querySelectorAll('input[name="place"]')].map((i) => Number(i.value));
+  const next = used.length ? Math.max(...used) + 1 : 0;
+  const html = places.querySelector("template[data-place]").innerHTML.replaceAll("__i__", next);
+  add.insertAdjacentHTML("beforebegin", html);
+});

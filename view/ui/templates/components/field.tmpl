@@ -1,7 +1,8 @@
-{{/* Label, Name (the input name), Value. Autofocus: focused on load. */}}
+{{/* Label, Name (the input name), Value, Type (text by default; time for
+     times). Autofocus: focused on load. */}}
 {{ define "components/field" -}}
 <label class="flex flex-col gap-2">
     <span class="text-label text-text-muted uppercase">{{ .Label }}</span>
-    <input name="{{ .Name }}" value="{{ .Value }}" class="h-12 w-full border-2 border-border bg-surface px-3 text-body text-text"{{ if .Autofocus }} autofocus{{ end }}>
+    <input{{ with .Type }} type="{{ . }}"{{ end }} name="{{ .Name }}" value="{{ .Value }}" class="h-12 w-full border-2 border-border bg-surface px-3 text-body text-text"{{ if .Autofocus }} autofocus{{ end }}>
 </label>
 {{- end }}

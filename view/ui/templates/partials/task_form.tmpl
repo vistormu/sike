@@ -3,7 +3,7 @@
 {{ define "partials/task_form" -}}
 <div class="fixed inset-0 flex md:bg-text/25">
     <a href="{{ .Close }}" class="hidden flex-1 md:block" aria-label="Close"></a>
-    <form method="post" action="{{ .Action }}" class="flex h-dvh w-full flex-col bg-bg md:w-120 md:border-l-2 md:border-border">
+    <form method="post" action="{{ .Action }}" class="group/form flex h-dvh w-full flex-col bg-bg md:w-120 md:border-l-2 md:border-border">
         <div class="flex items-center justify-between border-b-2 border-border px-4 pt-6 pb-4 md:hidden">
             {{ template "components/button" (dict "Glyph" "‹" "Href" .Close) }}
             <h1 class="text-title">Task</h1>
@@ -31,6 +31,17 @@
                     {{- end }}
                 </div>
             </fieldset>
+            {{- /* shown while "Every week" is picked; other whens ignore it */}}
+            <fieldset class="hidden flex-col group-has-[[name=when][value=weekly]:checked]/form:flex">
+                <legend class="mb-2 text-label text-text-muted uppercase">Weekly schedule</legend>
+                <div class="flex flex-col items-start gap-2" data-places>
+                    {{- range .Places }}
+                    {{ template "partials/task_form_place" . }}
+                    {{- end }}
+                    <template data-place>{{ template "partials/task_form_place" .Blank }}</template>
+                    <span data-add-time>{{ template "components/button" (dict "Label" "+ Add time") }}</span>
+                </div>
+            </fieldset>
             {{- with .Delete }}
             <div class="mt-auto flex justify-center md:hidden">
                 {{ template "components/button" (dict "Label" "Delete task" "Danger" true "FormAction" .) }}
@@ -44,5 +55,26 @@
             </div>
         </div>
     </form>
+</div>
+{{- end }}
+
+{{/* one time of the weekly schedule: weekdays, start and end, the two
+     notices. a box with no days is dropped on save. */}}
+{{ define "partials/task_form_place" -}}
+<div class="flex w-full flex-col gap-3 border-2 border-border bg-surface p-3">
+    <input type="hidden" name="place" value="{{ .I }}">
+    <div class="flex border-2 border-border bg-surface">
+        {{- range .Days }}
+        {{ template "components/segment" (dict "Name" (printf "days-%s" $.I) "Value" (printf "%d" .Value) "Label" .Label "Active" .On "Multi" true) }}
+        {{- end }}
+    </div>
+    <div class="flex gap-3">
+        <div class="min-w-0 flex-1">{{ template "components/field" (dict "Label" "Start" "Name" (printf "start-%s" .I) "Value" .Start "Type" "time") }}</div>
+        <div class="min-w-0 flex-1">{{ template "components/field" (dict "Label" "End" "Name" (printf "end-%s" .I) "Value" .End "Type" "time") }}</div>
+    </div>
+    <div class="flex items-center gap-4">
+        {{ template "components/check" (dict "Name" (printf "notify_start-%s" .I) "Label" "Notify at start" "On" .NotifyStart) }}
+        {{ template "components/check" (dict "Name" (printf "notify_end-%s" .I) "Label" "at end" "On" .NotifyEnd) }}
+    </div>
 </div>
 {{- end }}

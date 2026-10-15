@@ -14,14 +14,27 @@ import (
 // top is the position above every task of a person in one place in time.
 const top = `(SELECT COALESCE(MIN(position), 0) - 1 FROM tasks WHERE user_id = :user_id AND "when" = :when AND NOT deleted)`
 
-func (s *Store) CreateTask(ctx context.Context, t model.Task) (model.Task, error) {
-	res, err := s.db.NamedExecContext(ctx,
+// CreateTask adds a task on top of its place, with its placements (a weekly
+// task), in one transaction.
+func (s *Store) CreateTask(ctx context.Context, t model.Task, places []model.Placement) (model.Task, error) {
+	tx, err := s.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return model.Task{}, err
+	}
+	defer tx.Rollback()
+	res, err := tx.NamedExecContext(ctx,
 		`INSERT INTO tasks (user_id, name, color, "when", position) VALUES (:user_id, :name, :color, :when, `+top+`)`, t)
 	if err != nil {
 		return model.Task{}, err
 	}
 	id, err := res.LastInsertId()
 	if err != nil {
+		return model.Task{}, err
+	}
+	if err := insertPlacements(ctx, tx, id, places); err != nil {
+		return model.Task{}, err
+	}
+	if err := tx.Commit(); err != nil {
 		return model.Task{}, err
 	}
 	return s.GetTask(ctx, t.UserID, id)
@@ -95,21 +108,39 @@ func (s *Store) RestoreTask(ctx context.Context, userID, id int64) error {
 	return oneRow(res, "task", id)
 }
 
+// MoveTask puts a task on top of another place in time (pending or someday:
+// the service checks), dropping its placements.
 func (s *Store) MoveTask(ctx context.Context, userID, id int64, when model.When) error {
-	res, err := s.db.NamedExecContext(ctx,
+	tx, err := s.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	res, err := tx.NamedExecContext(ctx,
 		`UPDATE tasks SET "when" = :when, position = `+top+` WHERE user_id = :user_id AND id = :id AND NOT deleted`,
 		map[string]any{"user_id": userID, "id": id, "when": when})
 	if err != nil {
 		return err
 	}
-	return oneRow(res, "task", id)
+	if err := oneRow(res, "task", id); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM placements WHERE task_id = ?`, id); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
-// UpdateTask sets name, color and when. a task that changes its when goes on
-// top of its new place; sqlite reads the old row in SET, so the CASE sees the
-// when before the update.
-func (s *Store) UpdateTask(ctx context.Context, t model.Task) (model.Task, error) {
-	res, err := s.db.NamedExecContext(ctx,
+// UpdateTask sets name, color and when, and replaces the task's placements.
+// a task that changes its when goes on top of its new place; sqlite reads the
+// old row in SET, so the CASE sees the when before the update.
+func (s *Store) UpdateTask(ctx context.Context, t model.Task, places []model.Placement) (model.Task, error) {
+	tx, err := s.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return model.Task{}, err
+	}
+	defer tx.Rollback()
+	res, err := tx.NamedExecContext(ctx,
 		`UPDATE tasks SET name = :name, color = :color,
 			position = CASE WHEN "when" = :when THEN position ELSE `+top+` END, "when" = :when
 		WHERE user_id = :user_id AND id = :id AND NOT deleted`, t)
@@ -117,6 +148,15 @@ func (s *Store) UpdateTask(ctx context.Context, t model.Task) (model.Task, error
 		return model.Task{}, err
 	}
 	if err := oneRow(res, "task", t.ID); err != nil {
+		return model.Task{}, err
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM placements WHERE task_id = ?`, t.ID); err != nil {
+		return model.Task{}, err
+	}
+	if err := insertPlacements(ctx, tx, t.ID, places); err != nil {
+		return model.Task{}, err
+	}
+	if err := tx.Commit(); err != nil {
 		return model.Task{}, err
 	}
 	return s.GetTask(ctx, t.UserID, t.ID)
