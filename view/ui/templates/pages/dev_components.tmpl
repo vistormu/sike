@@ -47,6 +47,8 @@
         <div class="flex items-start gap-4 p-4">
             {{ template "components/day_head" (dict "Day" "Wed" "Date" "14") }}
             {{ template "components/day_head" (dict "Day" "Wed" "Date" "14" "Today" true) }}
+            {{ template "components/day_head" (dict "Day" "Wed" "Date" "14" "Today" true "Href" "#" "Index" 2 "Name" "Wednesday") }}
+            {{ template "components/day_head" (dict "Day" "Thu" "Date" "15" "Href" "#" "Index" 3 "Name" "Thursday" "Picked" true) }}
         </div>
     </section>
 

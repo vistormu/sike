@@ -38,21 +38,60 @@ document.addEventListener("click", (e) => {
 });
 
 // the week opens scrolled to now, and the now-line moves on every minute,
-// counted from the minute the server drew it.
-const now = document.querySelector("[data-now]");
-if (now) {
+// counted from the minute the server drew it. a tab bar link swaps the page in
+// (hx-boost), so a new page starts it again.
+function startNow() {
+  const now = document.querySelector("[data-now]");
+  if (!now) return;
+  now.dataset.loaded = Date.now();
+  now.scrollIntoView({ block: "center" });
+}
+startNow();
+document.addEventListener("htmx:afterSettle", startNow);
+setInterval(() => {
+  const now = document.querySelector("[data-now]");
+  if (!now) return;
   const timeline = now.closest("[data-timeline]");
   const from = Number(timeline.dataset.from) * 60;
   const span = Number(timeline.dataset.span) * 60;
-  const drawn = Number(now.dataset.now);
-  const loaded = Date.now();
-  now.scrollIntoView({ block: "center" });
-  setInterval(() => {
-    const minute = drawn + Math.floor((Date.now() - loaded) / 60000);
-    if (minute > from + span) now.remove();
-    else now.style.top = ((minute - from) / span) * 100 + "%";
-  }, 60000);
+  const minute = Number(now.dataset.now) + Math.floor((Date.now() - Number(now.dataset.loaded)) / 60000);
+  if (minute > from + span) now.remove();
+  else now.style.top = ((minute - from) / span) * 100 + "%";
+}, 60000);
+
+// the week on the phone: one day, picked in the day picker or by a swipe.
+// the day's head, chips and column carry data-shown; past either end of the
+// week, the week before or after opens. the url keeps the day for a reload.
+function showDay(week, i) {
+  const heads = week.querySelectorAll("a[data-day]");
+  if (i < 0) return location.assign(week.dataset.before);
+  if (i >= heads.length) return location.assign(week.dataset.after);
+  for (const el of week.querySelectorAll("[data-day]")) el.toggleAttribute("data-shown", el.dataset.day === String(i));
+  week.querySelector("[data-day-name]").textContent = heads[i].dataset.name;
+  history.replaceState(null, "", heads[i].href);
 }
+
+document.addEventListener("click", (e) => {
+  const head = e.target.closest("[data-week] a[data-day]");
+  if (!head) return;
+  e.preventDefault();
+  showDay(head.closest("[data-week]"), Number(head.dataset.day));
+});
+
+let swipe = null; // where a one-finger touch started
+document.addEventListener("touchstart", (e) => {
+  swipe = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+}, { passive: true });
+document.addEventListener("touchend", (e) => {
+  const week = e.target.closest("[data-week]");
+  if (!swipe || !week || matchMedia("(min-width: 768px)").matches) return;
+  const dx = e.changedTouches[0].clientX - swipe.x;
+  const dy = e.changedTouches[0].clientY - swipe.y;
+  swipe = null;
+  if (Math.abs(dx) < 50 || Math.abs(dx) < 2 * Math.abs(dy)) return;
+  const on = week.querySelector("a[data-day][data-shown]");
+  showDay(week, Number(on.dataset.day) + (dx < 0 ? 1 : -1));
+});
 
 // a time field: what was typed (1830, 18.30, 8) becomes HH:MM on leaving it,
 // as the server reads it (clock.ReadTime). anything else stays for the server

@@ -15,7 +15,7 @@ import (
 
 var (
 	blockRe = regexp.MustCompile(`style="top: calc\(([\d.]+)% \+ 3px\); height: calc\(([\d.]+)% - 6px\); left: calc\(([\d.]+)% \+ (\d+)px \+ 3px\); width: calc\(([\d.]+)% - \d+px - 6px\)">\s*<div[^>]*>\s*<a href="(/week/\d+)" data-task class="[^"]*" style="--fill: var\(--task-(\w+)\)">\s*<span[^>]*>([^<]+)</span>(?:\s*<span[^>]*>([^<]+)</span>)?`)
-	hourRe  = regexp.MustCompile(`text-text-muted" style="top: [\d.]+%">(\d\d:00)</span>`)
+	hourRe  = regexp.MustCompile(`text-text-muted [^"]*" style="top: [\d.]+%">(\d\d:00)</span>`)
 	nowRe   = regexp.MustCompile(`style="top: ([\d.]+)%" data-now="(\d+)"`)
 )
 
@@ -179,8 +179,10 @@ func TestWeekDated(t *testing.T) {
 	for _, m := range chipRe.FindAllStringSubmatch(page, -1) {
 		chips = append(chips, html.UnescapeString(m[3])+"/"+m[2])
 	}
-	// wed: all day first, then due; fri: due (coral, whatever the area); sat, sun: the trip
+	// wed: all day first, then due; fri: due (coral, whatever the area); sat, sun: the
+	// trip. twice: the phone's lanes, then the desktop's
 	want := "🎂 Ana's birthday/pink, Report · due 14:00/coral, Taxes · due/coral, Trip/lime, Trip/lime"
+	want += ", " + want
 	if strings.Join(chips, ", ") != want {
 		t.Errorf("chips = %q\nwant    %s", strings.Join(chips, ", "), want)
 	}
@@ -198,5 +200,70 @@ func TestWeekDated(t *testing.T) {
 	}
 	if strings.Contains(page, "Later") {
 		t.Error("next week's task shows")
+	}
+	// the phone's lanes: only days with chips, today's shown
+	var lanes []string
+	for _, m := range laneRe.FindAllStringSubmatch(page, -1) {
+		lanes = append(lanes, m[1]+m[2])
+	}
+	if want := "2 data-shown, 4, 5, 6"; strings.Join(lanes, ", ") != want {
+		t.Errorf("phone lanes = %q, want %s", strings.Join(lanes, ", "), want)
+	}
+}
+
+var (
+	laneRe = regexp.MustCompile(`data-shown:flex" data-day="(\d)"( data-shown)?>`)
+	headRe = regexp.MustCompile(`<a href="(/week\?date=[\d-]+)" data-day="(\d)" data-name="(\w+)"( data-shown)?`)
+	colRe  = regexp.MustCompile(`md:block" data-day="(\d)"( data-shown)?>`)
+)
+
+// the phone shows one day (figma: Week — Phone): today, or ?date='s. the day
+// picker links every day; the day's head, lane and column are marked shown,
+// and the title names it.
+func TestWeekPhone(t *testing.T) {
+	h, svc := testApp(t)
+	you, _ := svc.Users.Add(context.Background(), "You", "🦊")
+	weekly(t, svc, you.ID, "Work", "sky", model.DaysOf(time.Wednesday, time.Thursday), 9*60, 17*60)
+	in := &http.Cookie{Name: userCookieName, Value: "1"}
+
+	for _, tt := range []struct {
+		path, name string
+		shown      string
+	}{
+		{"/week", "Wednesday", "2"},
+		{"/week?date=2026-10-15", "Thursday", "3"},
+	} {
+		page := body(t, get(h, tt.path, in))
+		heads := headRe.FindAllStringSubmatch(page, -1)
+		if len(heads) != 7 || heads[0][1] != "/week?date=2026-10-12" || heads[6][3] != "Sunday" {
+			t.Fatalf("%s: %d day picker links, want mon 12 … sunday", tt.path, len(heads))
+		}
+		var shown []string
+		for _, m := range heads {
+			if m[4] != "" {
+				shown = append(shown, m[2])
+			}
+		}
+		for _, m := range colRe.FindAllStringSubmatch(page, -1) {
+			if m[2] != "" {
+				shown = append(shown, m[1])
+			}
+		}
+		if strings.Join(shown, " ") != tt.shown+" "+tt.shown {
+			t.Errorf("%s: shown %v, want the head and column of day %s", tt.path, shown, tt.shown)
+		}
+		for _, want := range []string{
+			"Week · Oct 12 – 18", `data-day-name>` + tt.name + `</h1>`,
+			`data-before="/week?date=2026-10-11" data-after="/week?date=2026-10-19"`,
+		} {
+			if !strings.Contains(page, want) {
+				t.Errorf("%s lacks %q", tt.path, want)
+			}
+		}
+	}
+	// thursday picked: today keeps its ink border, no butter of its own
+	page := body(t, get(h, "/week?date=2026-10-15", in))
+	if !strings.Contains(page, `<span class="border-2 border-border flex size-10 items-center justify-center text-title text-text group-data-shown:border-2 group-data-shown:border-border group-data-shown:bg-accent">14</span>`) {
+		t.Error("today is not an ink border in the phone's day picker")
 	}
 }

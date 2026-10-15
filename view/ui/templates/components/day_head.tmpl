@@ -1,7 +1,15 @@
-{{/* Day ("Wed"), Date ("14"). Today: the butter box. */}}
+{{/* Day ("Wed"), Date ("14"). Today: the butter box. Href: the phone's day
+     picker, a link to that day; the picked one (Picked, then app.js's
+     data-shown) is the butter box, and today, when another is picked, keeps an
+     ink border (figma: Today not picked). */}}
 {{ define "components/day_head" -}}
-<div class="flex flex-col items-center gap-1 py-2">
+{{ if .Href }}<a href="{{ .Href }}" data-day="{{ .Index }}" data-name="{{ .Name }}"{{ if .Picked }} data-shown{{ end }} class="group flex flex-col items-center gap-1 py-2">
+    <span class="{{ if .Today }}text-text{{ else }}text-text-muted group-data-shown:text-text{{ end }} text-label uppercase">{{ .Day }}</span>
+    <span class="{{ if .Today }}border-2 border-border{{ end }} flex size-10 items-center justify-center text-title text-text group-data-shown:border-2 group-data-shown:border-border group-data-shown:bg-accent">{{ .Date }}</span>
+</a>
+{{- else }}<div class="flex flex-col items-center gap-1 py-2">
     <span class="{{ if .Today }}text-text{{ else }}text-text-muted{{ end }} text-label uppercase">{{ .Day }}</span>
     <span class="{{ if .Today }}border-2 border-border bg-accent{{ end }} flex size-10 items-center justify-center text-title text-text">{{ .Date }}</span>
 </div>
+{{- end }}
 {{- end }}

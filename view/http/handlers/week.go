@@ -14,7 +14,8 @@ import (
 // Week is the week tab: a person's routines and timed dated tasks on a
 // seven-day timeline, what has no hours (all day, due, a stretch) as chips in
 // the lane under the day heads; it opens on this week (?date= shows the week
-// of that day).
+// of that day). the phone shows one day of it, today's or ?date='s, and
+// app.js moves between them.
 type Week struct {
 	R     Renderer
 	Frame Frame
@@ -26,6 +27,8 @@ type Week struct {
 type weekPage struct {
 	Sub              string // "Oct 12 – 18 · week 42"
 	Prev, Next, This string // the links ‹ › and Today
+	Eyebrow, Day     string // the phone's "Week · Oct 12 – 18" and "Thursday"
+	Before, After    string // the phone: the days either side of the week
 	Hours            []hourLine
 	From, Span       int // the first hour, and how many the timeline shows
 	Days             []weekDay
@@ -38,7 +41,10 @@ type hourLine struct {
 
 type weekDay struct {
 	Day, Date string // "Wed", "14"
+	Name      string // "Wednesday"
+	Href      string // the phone's day picker: this day
 	Today     bool
+	Picked    bool       // the day the phone shows
 	Chips     []weekChip // all day, due, a day of a stretch: the lane
 	Blocks    []weekBlock
 	Now       string // the now-line's top (%); "" when it is not on this day
@@ -124,18 +130,25 @@ func (h Week) Page(w http.ResponseWriter, r *http.Request, opts ...Option) {
 	pct := func(t clock.Time) float64 { return float64(int(t)-from*60) / float64(span*60) * 100 }
 
 	page := weekPage{
-		Sub:  fmt.Sprintf("%s · week %d", weekRange(monday, end.AddDays(-1)), monday.ISOWeek()),
-		Prev: "/week?date=" + monday.AddDays(-7).String(),
-		Next: "/week?date=" + end.String(),
-		This: "/week",
-		From: from,
-		Span: span,
+		Sub:     fmt.Sprintf("%s · week %d", weekRange(monday, end.AddDays(-1)), monday.ISOWeek()),
+		Prev:    "/week?date=" + monday.AddDays(-7).String(),
+		Next:    "/week?date=" + end.String(),
+		This:    "/week",
+		Eyebrow: "Week · " + weekRange(monday, end.AddDays(-1)),
+		Day:     day.Weekday().String(),
+		Before:  "/week?date=" + monday.AddDays(-1).String(),
+		After:   "/week?date=" + end.String(),
+		From:    from,
+		Span:    span,
 	}
 	for hr := from; hr < to; hr++ {
 		page.Hours = append(page.Hours, hourLine{Label: fmt.Sprintf("%02d:00", hr), Top: percent(pct(clock.Time(hr * 60)))})
 	}
 	for d := monday; d.Before(end); d = d.AddDays(1) {
-		wd := weekDay{Day: d.Weekday().String()[:3], Date: fmt.Sprint(d.Day), Today: d == today}
+		wd := weekDay{
+			Day: d.Weekday().String()[:3], Date: fmt.Sprint(d.Day), Name: d.Weekday().String(),
+			Href: "/week?date=" + d.String(), Today: d == today, Picked: d == day,
+		}
 		for _, c := range chips {
 			if c.occ.Date != d {
 				continue

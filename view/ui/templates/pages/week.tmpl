@@ -1,18 +1,37 @@
 {{/* the week: day heads, then the timeline in its own scroller. hours fill
      the height when they fit (at least 36px each), else it scrolls. blocks sit
      at their % of the hours and of the column (clock.Layout: side by side when
-     they clash), nested ones 40px further in, all 3px in on every side. */}}
+     they clash), nested ones 40px further in, all 3px in on every side.
+     the phone shows one day: its day picker, chips and column are the ones
+     marked data-shown (app.js moves the mark; data-day is the day's index). */}}
 {{ define "content" }}
-<div class="flex h-full flex-col">
-    {{ template "partials/header" (dict "Title" "Week" "Sub" .Sub "Prev" .Prev "Next" .Next "This" .This "New" "+ New task" "Href" "/week/new") }}
-    <div class="flex pr-4">
+<div class="flex h-full flex-col" data-week data-before="{{ .Before }}" data-after="{{ .After }}">
+    {{ template "partials/header" (dict "Title" "Week" "Sub" .Sub "Prev" .Prev "Next" .Next "This" .This "New" "+ New task" "Href" "/week/new" "Eyebrow" .Eyebrow "Day" .Day) }}
+    {{- /* the phone: the day picker and the picked day's chips, over the rule */}}
+    <div class="border-b-2 border-border md:hidden">
+        <div class="grid grid-cols-7 px-2">
+            {{- range $i, $d := .Days }}
+            {{ template "components/day_head" (dict "Day" .Day "Date" .Date "Today" .Today "Href" .Href "Index" $i "Name" .Name "Picked" .Picked) }}
+            {{- end }}
+        </div>
+        {{- range $i, $d := .Days }}
+        {{- if .Chips }}
+        <div class="hidden flex-wrap gap-2 px-4 pb-2 data-shown:flex" data-day="{{ $i }}"{{ if .Picked }} data-shown{{ end }}>
+            {{- range .Chips }}
+            {{ template "components/chip" (dict "Text" .Text "Color" .Color "Due" .Due "Href" .Href) }}
+            {{- end }}
+        </div>
+        {{- end }}
+        {{- end }}
+    </div>
+    <div class="hidden pr-4 md:flex">
         <div class="w-16 shrink-0"></div>
         {{- range .Days }}
         <div class="min-w-0 flex-1">{{ template "components/day_head" (dict "Day" .Day "Date" .Date "Today" .Today) }}</div>
         {{- end }}
     </div>
     {{- /* the chip lane: what has no hours, under its day */}}
-    <div class="flex border-b border-divider pr-4 pb-2">
+    <div class="hidden border-b border-divider pr-4 pb-2 md:flex">
         <div class="w-16 shrink-0"></div>
         {{- range .Days }}
         <div class="flex min-w-0 flex-1 flex-col gap-1 px-1">
@@ -23,15 +42,15 @@
         {{- end }}
     </div>
     <div class="min-h-0 flex-1 overflow-y-auto" data-timeline data-from="{{ .From }}" data-span="{{ .Span }}">
-        <div class="h-full py-3 pr-4" style="min-height: calc({{ .Span }} * 36px + 24px)">
-            <div class="relative ml-16 h-full">
+        <div class="h-full py-3 pr-3 md:pr-4" style="min-height: calc({{ .Span }} * 36px + 24px)">
+            <div class="relative ml-14 h-full md:ml-16">
                 {{- range .Hours }}
                 <div class="absolute inset-x-0 h-px bg-divider" style="top: {{ .Top }}%"></div>
-                <span class="absolute -left-16 w-13 -translate-y-1/2 text-right font-mono text-mono text-text-muted" style="top: {{ .Top }}%">{{ .Label }}</span>
+                <span class="absolute -left-14 w-11 -translate-y-1/2 text-right font-mono text-mono text-text-muted md:-left-16 md:w-13" style="top: {{ .Top }}%">{{ .Label }}</span>
                 {{- end }}
-                <div class="absolute inset-0 grid grid-cols-7">
-                    {{- range .Days }}
-                    <div class="relative">
+                <div class="absolute inset-0 grid md:grid-cols-7">
+                    {{- range $i, $d := .Days }}
+                    <div class="relative hidden data-shown:block md:block" data-day="{{ $i }}"{{ if .Picked }} data-shown{{ end }}>
                         {{- range .Blocks }}
                         <div class="absolute" style="top: calc({{ .Top }}% + 3px); height: calc({{ .Height }}% - 6px); left: calc({{ .Left }}% + {{ .Inset }}px + 3px); width: calc({{ .Width }}% - {{ .Inset }}px - 6px)">
                             {{- template "components/task_block" (dict "Name" .Name "Time" .Time "Color" .Color "Href" .Href) -}}

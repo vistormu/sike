@@ -42,7 +42,8 @@ func TestTabs(t *testing.T) {
 				t.Fatalf("status %d", res.StatusCode)
 			}
 			page := body(t, res)
-			if !strings.Contains(page, `<h1 class="text-display">`+tt.title+`</h1>`) {
+			// week's is the desktop's: the phone's names the day
+			if !regexp.MustCompile(`<h1 class="[^"]*text-display[^"]*">` + tt.title + `</h1>`).MatchString(page) {
 				t.Errorf("no %q title", tt.title)
 			}
 			// the shell: four tabs in the sidebar and four in the tab bar, the

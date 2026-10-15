@@ -13,7 +13,7 @@
         </a>
     </nav>
     <div class="relative flex min-w-0 flex-1 flex-col">
-        <a href="/settings" class="absolute top-6 right-4 flex h-9 items-center text-title md:hidden" hx-boost="true">{{ .Shell.User.Emoji }}</a>
+        <a href="/settings" class="absolute top-6 right-4 flex h-9 items-center text-title md:hidden [body:has([data-day-name])_&]:top-[42px]" hx-boost="true">{{ .Shell.User.Emoji }}</a>
         <main class="min-h-0 flex-1 overflow-y-auto">
             {{ template "content" .Page }}
         </main>
