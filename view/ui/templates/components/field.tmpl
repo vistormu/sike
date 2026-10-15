@@ -1,8 +1,9 @@
-{{/* Label, Name (the input name), Value, Type (text by default; time for
-     times). Autofocus: focused on load. */}}
+{{/* Label, Name (the input name), Value. Time: a 24h time, typed on the
+     number pad (18:30, 1830, 18); the server reads it, app.js tidies it to
+     HH:MM. Autofocus: focused on load. */}}
 {{ define "components/field" -}}
 <label class="flex flex-col gap-2">
     <span class="text-label text-text-muted uppercase">{{ .Label }}</span>
-    <input{{ with .Type }} type="{{ . }}"{{ end }} name="{{ .Name }}" value="{{ .Value }}" class="h-12 w-full border-2 border-border bg-surface px-3 text-body text-text"{{ if .Autofocus }} autofocus{{ end }}>
+    <input name="{{ .Name }}" value="{{ .Value }}" class="h-12 w-full border-2 border-border bg-surface px-3 text-body text-text"{{ if .Time }} inputmode="numeric" maxlength="5" autocomplete="off" data-time{{ end }}{{ if .Autofocus }} autofocus{{ end }}>
 </label>
 {{- end }}

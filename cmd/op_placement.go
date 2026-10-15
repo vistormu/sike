@@ -127,10 +127,10 @@ func parsePlace(spec string) (model.Placement, error) {
 		}
 	}
 	var err error
-	if p.Start, err = clock.ParseTime(start); err != nil {
+	if p.Start, err = clock.ReadTime(start); err != nil {
 		return model.Placement{}, err
 	}
-	if p.End, err = clock.ParseTime(end); err != nil {
+	if p.End, err = clock.ReadTime(end); err != nil {
 		return model.Placement{}, err
 	}
 	return p, nil

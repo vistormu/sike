@@ -6,6 +6,7 @@ package clock
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -30,6 +31,30 @@ func ParseTime(s string) (Time, error) {
 		return 0, fmt.Errorf("time %q: want HH:MM, 00:00 to 24:00", s)
 	}
 	return Time(h*60 + m), nil
+}
+
+// ReadTime reads a time as people type it, 24h: "18:30", "18.30", "1830",
+// "830", "18", "8". anything else is an error.
+func ReadTime(s string) (Time, error) {
+	s = strings.TrimSpace(s)
+	h, m, sep := strings.Cut(strings.NewReplacer(".", ":", "h", ":", "H", ":").Replace(s), ":")
+	if !sep {
+		switch len(s) {
+		case 1, 2:
+			h, m = s, "00"
+		case 3, 4:
+			h, m = s[:len(s)-2], s[len(s)-2:]
+		default:
+			return 0, fmt.Errorf("time %q: want HH:MM", s)
+		}
+	}
+	if len(h) == 1 {
+		h = "0" + h
+	}
+	if m == "" {
+		m = "00"
+	}
+	return ParseTime(h + ":" + m)
 }
 
 func (t Time) Hour() int   { return int(t) / 60 }

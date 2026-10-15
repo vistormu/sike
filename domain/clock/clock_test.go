@@ -51,6 +51,24 @@ func TestParseTime(t *testing.T) {
 	}
 }
 
+func TestReadTime(t *testing.T) {
+	for in, want := range map[string]string{
+		"18:30": "18:30", "18.30": "18:30", "18h30": "18:30", "1830": "18:30",
+		"830": "08:30", "8:30": "08:30", "18": "18:00", "8": "08:00", "18h": "18:00",
+		" 07:05 ": "07:05", "0000": "00:00", "24": "24:00", "2400": "24:00",
+	} {
+		got, err := ReadTime(in)
+		if err != nil || got.String() != want {
+			t.Errorf("ReadTime(%q) = %v, %v; want %s", in, got, err, want)
+		}
+	}
+	for _, bad := range []string{"", "7pm", "18:3", "1860", "2401", "25", "12345", "a8", "18:30:00", "-1"} {
+		if got, err := ReadTime(bad); err == nil {
+			t.Errorf("ReadTime(%q) = %v, want an error", bad, got)
+		}
+	}
+}
+
 func TestDates(t *testing.T) {
 	d := func(s string) Date {
 		t.Helper()

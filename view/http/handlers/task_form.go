@@ -120,10 +120,10 @@ func placements(rows []placeRow) ([]model.Placement, error) {
 			return nil, model.Invalid("A time needs a start and an end")
 		}
 		var err1, err2 error
-		p.Start, err1 = clock.ParseTime(row.Start)
-		p.End, err2 = clock.ParseTime(row.End)
+		p.Start, err1 = clock.ReadTime(row.Start)
+		p.End, err2 = clock.ReadTime(row.End)
 		if err1 != nil || err2 != nil {
-			return nil, model.Invalid("Times are HH:MM")
+			return nil, model.Invalid("Times are HH:MM, 24h")
 		}
 		p.NotifyStart, p.NotifyEnd = row.NotifyStart, row.NotifyEnd
 		places = append(places, p)

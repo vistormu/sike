@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"sike/adapter/store"
 	"sike/domain/service"
@@ -18,6 +19,13 @@ type services struct {
 	Areas *service.Areas
 	Tasks *service.Tasks
 }
+
+// the tests' clock: madrid, stopped on wednesday 2026-10-14 at 18:45, the day
+// and minute figma's week draws.
+var (
+	testLoc, _ = time.LoadLocation("Europe/Madrid")
+	testNow    = func() time.Time { return time.Date(2026, 10, 14, 18, 45, 0, 0, testLoc) }
+)
 
 // testServer is the real server on a fresh in-memory database.
 func testServer(t *testing.T) (http.Handler, *service.Users) {
@@ -39,7 +47,7 @@ func testApp(t *testing.T) (http.Handler, services) {
 	}
 	st := store.New(db)
 	svc := services{Users: service.NewUsers(st), Areas: service.NewAreas(st), Tasks: service.NewTasks(st)}
-	s, err := New(Config{Users: svc.Users, Areas: svc.Areas, Tasks: svc.Tasks})
+	s, err := New(Config{Users: svc.Users, Areas: svc.Areas, Tasks: svc.Tasks, Loc: testLoc, Now: testNow})
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}

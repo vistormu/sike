@@ -1,0 +1,40 @@
+{{/* the week: day heads, then the timeline in its own scroller. hours fill
+     the height when they fit (at least 36px each), else it scrolls. blocks sit
+     at their % of the hours, 3px in on every side. */}}
+{{ define "content" }}
+<div class="flex h-full flex-col">
+    {{ template "partials/header" (dict "Title" "Week" "Sub" .Sub "Prev" .Prev "Next" .Next "This" .This "New" "+ New task" "Href" "/week/new") }}
+    <div class="flex border-b border-divider pr-4">
+        <div class="w-16 shrink-0"></div>
+        {{- range .Days }}
+        <div class="min-w-0 flex-1">{{ template "components/day_head" (dict "Day" .Day "Date" .Date "Today" .Today) }}</div>
+        {{- end }}
+    </div>
+    <div class="min-h-0 flex-1 overflow-y-auto" data-timeline data-from="{{ .From }}" data-span="{{ .Span }}">
+        <div class="h-full py-3 pr-4" style="min-height: calc({{ .Span }} * 36px + 24px)">
+            <div class="relative ml-16 h-full">
+                {{- range .Hours }}
+                <div class="absolute inset-x-0 h-px bg-divider" style="top: {{ .Top }}%"></div>
+                <span class="absolute -left-16 w-13 -translate-y-1/2 text-right font-mono text-mono text-text-muted" style="top: {{ .Top }}%">{{ .Label }}</span>
+                {{- end }}
+                <div class="absolute inset-0 grid grid-cols-7">
+                    {{- range .Days }}
+                    <div class="relative">
+                        {{- range .Blocks }}
+                        <div class="absolute inset-x-[3px]" style="top: calc({{ .Top }}% + 3px); height: calc({{ .Height }}% - 6px)">
+                            {{- template "components/task_block" (dict "Name" .Name "Time" .Time "Color" .Color "Href" .Href) -}}
+                        </div>
+                        {{- end }}
+                        {{- if .Now }}
+                        <div class="absolute inset-x-0 h-0.5 -translate-y-1/2 bg-danger" style="top: {{ .Now }}%" data-now="{{ .Minute }}">
+                            <span class="absolute top-1/2 -left-[4.5px] size-[9px] -translate-y-1/2 rounded-full bg-danger"></span>
+                        </div>
+                        {{- end }}
+                    </div>
+                    {{- end }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}

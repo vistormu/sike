@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -15,6 +16,8 @@ func TestRootGoesToWeek(t *testing.T) {
 		t.Errorf("/: %d to %q, want 303 to /week", res.StatusCode, res.Header.Get("Location"))
 	}
 }
+
+var navRe = regexp.MustCompile(`(?s)<nav .*?</nav>`)
 
 func TestTabs(t *testing.T) {
 	h, users := testServer(t)
@@ -43,18 +46,19 @@ func TestTabs(t *testing.T) {
 				t.Errorf("no %q title", tt.title)
 			}
 			// the shell: four tabs in the sidebar and four in the tab bar, the
-			// person, the way to settings
+			// person, the way to settings. counted in the two navs only: a
+			// page links too (week's Today)
+			navs := strings.Join(navRe.FindAllString(page, -1), "")
 			for _, href := range []string{"/week", "/upcoming", "/pending", "/someday"} {
-				if n := strings.Count(page, `href="`+href+`"`); n != 2 {
+				if n := strings.Count(navs, `href="`+href+`"`); n != 2 {
 					t.Errorf("%s linked %d times, want 2 (sidebar + tab bar)", href, n)
 				}
 			}
 			if !strings.Contains(page, "🦊") || !strings.Contains(page, "You") || strings.Count(page, `href="/settings"`) != 2 {
 				t.Errorf("the profile (emoji, name, two links to settings) is missing")
 			}
-			// active = the bordered butter fill, once in each nav (a primary
-			// button is butter too, without the border)
-			if n := strings.Count(page, "border-border bg-accent"); tt.active != "" && n != 2 || tt.active == "" && n != 0 {
+			// active = the bordered butter fill, once in each nav
+			if n := strings.Count(navs, "border-border bg-accent"); tt.active != "" && n != 2 || tt.active == "" && n != 0 {
 				t.Errorf("%d active items, want %d", n, map[bool]int{true: 2, false: 0}[tt.active != ""])
 			}
 		})

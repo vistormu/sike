@@ -289,7 +289,7 @@ func TestWeeklyForm(t *testing.T) {
 
 	// a new form has one blank box, and the blank one "+ Add time" copies
 	page := body(t, get(h, "/pending/new", in))
-	for _, want := range []string{`name="place" value="0"`, `name="place" value="__i__"`, `type="time" name="start-0"`, `name="days-0" value="1"`, "Weekly schedule"} {
+	for _, want := range []string{`name="place" value="0"`, `name="place" value="__i__"`, `name="start-0" value="" class="h-12 w-full border-2 border-border bg-surface px-3 text-body text-text" inputmode="numeric"`, `name="days-0" value="1"`, "Weekly schedule"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the new form lacks %q", want)
 		}
@@ -299,7 +299,7 @@ func TestWeeklyForm(t *testing.T) {
 		"name": {"Gym"}, "area": {"apricot"}, "when": {"weekly"},
 		"place":  {"0", "3", "5"},
 		"days-0": {"3", "6"}, "start-0": {"18:00"}, "end-0": {"19:30"}, "notify_start-0": {"on"},
-		"days-3": {"1"}, "start-3": {"07:00"}, "end-3": {"08:00"}, "notify_end-3": {"on"},
+		"days-3": {"1"}, "start-3": {"7"}, "end-3": {"0800"}, "notify_end-3": {"on"}, // as typed on a phone
 		"start-5": {"12:00"}, "end-5": {"13:00"}, // no days: dropped
 	}
 	res := postAs(h, "/pending/new", form, in)
@@ -358,7 +358,7 @@ func TestWeeklyFormErrors(t *testing.T) {
 		{nil, "18:00", "19:00", "Pick at least one day"},
 		{[]string{"1"}, "", "19:00", "A time needs a start and an end"},
 		{[]string{"1"}, "19:00", "18:00", "The end is before the start"},
-		{[]string{"1"}, "7pm", "8pm", "Times are HH:MM"},
+		{[]string{"1"}, "7pm", "8pm", "Times are HH:MM, 24h"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.toast, func(t *testing.T) {

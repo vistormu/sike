@@ -69,8 +69,8 @@
         {{- end }}
     </div>
     <div class="flex gap-3">
-        <div class="min-w-0 flex-1">{{ template "components/field" (dict "Label" "Start" "Name" (printf "start-%s" .I) "Value" .Start "Type" "time") }}</div>
-        <div class="min-w-0 flex-1">{{ template "components/field" (dict "Label" "End" "Name" (printf "end-%s" .I) "Value" .End "Type" "time") }}</div>
+        <div class="min-w-0 flex-1">{{ template "components/field" (dict "Label" "Start" "Name" (printf "start-%s" .I) "Value" .Start "Time" true) }}</div>
+        <div class="min-w-0 flex-1">{{ template "components/field" (dict "Label" "End" "Name" (printf "end-%s" .I) "Value" .End "Time" true) }}</div>
     </div>
     <div class="flex items-center gap-4">
         {{ template "components/check" (dict "Name" (printf "notify_start-%s" .I) "Label" "Notify at start" "On" .NotifyStart) }}

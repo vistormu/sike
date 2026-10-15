@@ -20,6 +20,8 @@ type Config struct {
 	Users *service.Users
 	Areas *service.Areas
 	Tasks *service.Tasks
+	Loc   *time.Location   // SIKE_TZ
+	Now   func() time.Time // time.Now, or a stopped clock in tests
 }
 
 type Server struct {
@@ -42,15 +44,17 @@ func New(cfg Config) (*Server, error) {
 	mux.Handle("GET /{$}", http.RedirectHandler("/week", http.StatusSeeOther))
 	frame := handlers.Frame{Tasks: cfg.Tasks}
 	t := handlers.Tabs{R: rd, Frame: frame}
-	for _, name := range []string{"week", "upcoming", "settings"} {
+	for _, name := range []string{"upcoming", "settings"} {
 		mux.Handle("GET /"+name, people.Require(t.Tab(name)))
 	}
 	pending := handlers.Pending{R: rd, Frame: frame, Tasks: cfg.Tasks, Areas: cfg.Areas}
 	mux.Handle("GET /pending", people.Require(http.HandlerFunc(pending.Show)))
 	someday := handlers.Someday{R: rd, Frame: frame, Tasks: cfg.Tasks, Areas: cfg.Areas}
 	mux.Handle("GET /someday", people.Require(http.HandlerFunc(someday.Show)))
+	week := handlers.Week{R: rd, Frame: frame, Tasks: cfg.Tasks, Loc: cfg.Loc, Now: cfg.Now}
+	mux.Handle("GET /week", people.Require(http.HandlerFunc(week.Show)))
 	form := handlers.TaskForm{Tasks: cfg.Tasks, Areas: cfg.Areas}
-	for tab, page := range map[string]handlers.Page{"pending": pending.Page, "someday": someday.Page} {
+	for tab, page := range map[string]handlers.Page{"week": week.Page, "pending": pending.Page, "someday": someday.Page} {
 		mux.Handle("GET /"+tab+"/new", people.Require(form.New(tab, page)))
 		mux.Handle("POST /"+tab+"/new", people.Require(form.Create(tab, page)))
 		mux.Handle("GET /"+tab+"/{id}", people.Require(form.Edit(tab, page)))
