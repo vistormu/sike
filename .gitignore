@@ -1,0 +1,23 @@
+# internal development docs (synced with syncthing, not published)
+/docs/
+/CLAUDE.md
+/.claude/
+
+# build
+/sike
+/bin/
+
+# sqlite (SIKE_DB default: sike.db, wal mode)
+*.db
+*.db-wal
+*.db-shm
+
+# tailwind pipeline (m2)
+node_modules/
+
+# local env and editor
+.env
+.env.*
+.DS_Store
+.idea/
+.vscode/
