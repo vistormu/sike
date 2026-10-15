@@ -10,7 +10,10 @@
     <script src="/static/js/app.js" defer></script>
 </head>
 <body>
-    {{ template "content" . }}
+    {{ template "content" .Page }}
+    {{- with .Toast }}
+    <div class="fixed inset-x-4 bottom-4 mx-auto max-w-[358px]">{{ template "components/toast" . }}</div>
+    {{- end }}
 </body>
 </html>
 {{ end }}

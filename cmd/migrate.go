@@ -4,8 +4,6 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-
-	"sike/adapter/store"
 )
 
 func migrateCmd() *cobra.Command {
@@ -16,17 +14,12 @@ func migrateCmd() *cobra.Command {
 resulting version. run also migrates on boot; this is for doing it by hand.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := getenv("SIKE_DB", "sike.db")
-			db, err := store.Open(path)
+			db, path, v, err := openDB(cmd)
 			if err != nil {
 				return err
 			}
 			defer db.Close()
-			v, err := store.Migrate(cmd.Context(), db)
-			if err != nil {
-				return err
-			}
-			fmt.Printf("%s at version %d\n", path, v)
+			fmt.Fprintf(cmd.OutOrStdout(), "%s at version %d\n", path, v)
 			return nil
 		},
 	}

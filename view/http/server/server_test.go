@@ -1,19 +1,38 @@
 package server
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"sike/adapter/store"
+	"sike/domain/service"
 )
 
-func TestRoutes(t *testing.T) {
-	s, err := New(Config{})
+// testServer is the real server on a fresh in-memory database.
+func testServer(t *testing.T) (http.Handler, *service.Users) {
+	t.Helper()
+	db, err := store.OpenMemory()
+	if err != nil {
+		t.Fatalf("OpenMemory: %v", err)
+	}
+	t.Cleanup(func() { db.Close() })
+	if _, err := store.Migrate(context.Background(), db); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+	users := service.NewUsers(store.New(db))
+	s, err := New(Config{Users: users})
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	h := s.http.Handler
+	return s.http.Handler, users
+}
+
+func TestRoutes(t *testing.T) {
+	h, _ := testServer(t)
 
 	tests := []struct {
 		path   string
@@ -21,8 +40,8 @@ func TestRoutes(t *testing.T) {
 		ctype  string
 		body   string // a substring that must be there
 	}{
-		{"/", 200, "text/html", "<!doctype html>"},
-		{"/", 200, "text/html", `href="/static/css/site.css"`},
+		{"/who", 200, "text/html", "<!doctype html>"},
+		{"/who", 200, "text/html", `href="/static/css/site.css"`},
 		{"/dev/components", 200, "text/html", "sike — components"},
 		{"/static/js/htmx.min.js", 200, "text/javascript", "htmx"},
 		{"/static/css/site.css", 200, "text/css", "--color-bg"},

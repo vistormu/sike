@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"sike/adapter/store"
+	"sike/domain/service"
 	"sike/view/http/server"
 )
 
@@ -19,20 +20,17 @@ SIKE_DB the database file (default sike.db), created and migrated on boot.`,
   SIKE_ADDR=:3000 SIKE_DB=/data/sike.db sike run`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := getenv("SIKE_DB", "sike.db")
-			db, err := store.Open(path)
+			db, path, v, err := openDB(cmd)
 			if err != nil {
 				return err
 			}
 			defer db.Close()
-			v, err := store.Migrate(cmd.Context(), db)
-			if err != nil {
-				return err
-			}
 			log.Printf("db %s at version %d", path, v)
 
+			st := store.New(db)
 			srv, err := server.New(server.Config{
-				Addr: getenv("SIKE_ADDR", ":8090"),
+				Addr:  getenv("SIKE_ADDR", ":8090"),
+				Users: service.NewUsers(st),
 			})
 			if err != nil {
 				return err

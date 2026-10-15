@@ -49,11 +49,11 @@
     <section class="flex flex-col gap-2">
         <h2 class="text-title">Mood face</h2>
         <div class="flex items-center gap-1 p-4">
-            {{ template "components/mood_face" (dict "Emoji" "😞") }}
-            {{ template "components/mood_face" (dict "Emoji" "🙁") }}
-            {{ template "components/mood_face" (dict "Emoji" "😐") }}
-            {{ template "components/mood_face" (dict "Emoji" "🙂" "On" true) }}
-            {{ template "components/mood_face" (dict "Emoji" "😄") }}
+            {{ template "components/mood_face" (dict "Name" "mood" "Value" "😞" "Emoji" "😞") }}
+            {{ template "components/mood_face" (dict "Name" "mood" "Value" "🙁" "Emoji" "🙁") }}
+            {{ template "components/mood_face" (dict "Name" "mood" "Value" "😐" "Emoji" "😐") }}
+            {{ template "components/mood_face" (dict "Name" "mood" "Value" "🙂" "Emoji" "🙂" "On" true) }}
+            {{ template "components/mood_face" (dict "Name" "mood" "Value" "😄" "Emoji" "😄") }}
         </div>
     </section>
 
@@ -114,7 +114,7 @@
 
     <section class="flex flex-col gap-2">
         <h2 class="text-title">Tile</h2>
-        <div class="w-50 p-4 box-content">
+        <div class="h-28 w-50 p-4 box-content">
             {{ template "components/tile" (dict "Name" "Learn piano" "Color" "lavender") }}
         </div>
     </section>
@@ -136,8 +136,10 @@
 
     <section class="flex flex-col gap-2">
         <h2 class="text-title">Toast</h2>
-        <div class="w-[358px] p-4 box-content">
-            {{ template "components/toast" (dict "Message" "Deleted “Fix bike”") }}
+        <div class="flex w-[358px] flex-col gap-4 p-4 box-content">
+            {{ template "components/toast" (dict "Message" "Deleted “Fix bike”" "Action" true) }}
+            {{ template "components/toast" (dict "Message" "Deleted “Fix bike”" "Error" true "Action" true) }}
+            {{ template "components/toast" (dict "Message" "“You” is already taken" "Error" true) }}
         </div>
     </section>
 </main>

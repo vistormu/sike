@@ -1,5 +1,6 @@
 {{/* Label, or Glyph for the 36px square icon button. Primary: butter + the one
-     shadow of a view. Fab: the 56px phone FAB (a primary icon button). */}}
+     shadow of a view. Fab: the 56px phone FAB (a primary icon button). Href:
+     a link that looks like a button. Submit: submits its form. */}}
 {{ define "components/button" -}}
-<button type="button" class="{{ if .Fab }}size-14{{ else if .Glyph }}size-9{{ else }}h-9 px-4{{ end }} {{ if or .Primary .Fab }}bg-accent shadow-raised active:translate-x-[3px] active:translate-y-[3px] active:shadow-none{{ else }}bg-surface{{ end }} inline-flex shrink-0 cursor-pointer items-center justify-center border-2 border-border text-strong text-text">{{ or .Glyph .Label }}</button>
+{{ if .Href }}<a href="{{ .Href }}"{{ else }}<button type="{{ if .Submit }}submit{{ else }}button{{ end }}"{{ end }} class="{{ if .Fab }}size-14{{ else if .Glyph }}size-9{{ else }}h-9 px-4{{ end }} {{ if or .Primary .Fab }}bg-accent shadow-raised active:translate-x-[3px] active:translate-y-[3px] active:shadow-none{{ else }}bg-surface{{ end }} inline-flex shrink-0 cursor-pointer items-center justify-center border-2 border-border text-strong text-text">{{ or .Glyph .Label }}{{ if .Href }}</a>{{ else }}</button>{{ end }}
 {{- end }}

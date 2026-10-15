@@ -10,6 +10,7 @@ import (
 	"path"
 	"strings"
 
+	"sike/view/http/handlers"
 	"sike/view/ui"
 )
 
@@ -50,9 +51,25 @@ func newRenderer() (*renderer, error) {
 	return &renderer{pages: pages}, nil
 }
 
-// Render writes a page through the layout. It renders into a buffer first, so a
-// template error is a clean 500 instead of half a page.
+// root is what the layout sees: the page's own data, and an optional toast.
+type root struct {
+	Page  any
+	Toast *handlers.Toast
+}
+
+// Render writes a page through the layout.
 func (rd *renderer) Render(w http.ResponseWriter, page string, data any) {
+	rd.render(w, page, root{Page: data}, http.StatusOK)
+}
+
+// RenderToast writes a page with a status and the floating toast.
+func (rd *renderer) RenderToast(w http.ResponseWriter, page string, data any, status int, t handlers.Toast) {
+	rd.render(w, page, root{Page: data, Toast: &t}, status)
+}
+
+// render renders into a buffer first, so a template error is a clean 500
+// instead of half a page.
+func (rd *renderer) render(w http.ResponseWriter, page string, data root, status int) {
 	set, ok := rd.pages[page]
 	if !ok {
 		log.Printf("render: unknown page %q", page)
@@ -66,6 +83,7 @@ func (rd *renderer) Render(w http.ResponseWriter, page string, data any) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
 	_, _ = buf.WriteTo(w)
 }
 

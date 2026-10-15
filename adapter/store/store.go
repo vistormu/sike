@@ -5,14 +5,26 @@ import (
 	"context"
 	"database/sql"
 	"embed"
+	"errors"
 	"fmt"
 	"io/fs"
 	"net/url"
+	"sync/atomic"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pressly/goose/v3"
-	_ "modernc.org/sqlite" // pure go: no cgo, a static binary
+	"modernc.org/sqlite" // pure go: no cgo, a static binary
+	sqlite3 "modernc.org/sqlite/lib"
 )
+
+// Store implements the service store interfaces against sqlite.
+type Store struct {
+	db *sqlx.DB
+}
+
+func New(db *sqlx.DB) *Store {
+	return &Store{db: db}
+}
 
 //go:embed migrations/*.sql
 var migrations embed.FS
@@ -29,6 +41,19 @@ func Open(path string) (*sqlx.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open %s: %w", path, err)
 	}
+	return db, nil
+}
+
+var memN atomic.Int64
+
+// OpenMemory opens a fresh, empty in-memory database, for tests. it has one
+// connection: each new connection to an in-memory db is a different, empty db.
+func OpenMemory() (*sqlx.DB, error) {
+	db, err := open(fmt.Sprintf("file:mem%d?mode=memory&_pragma=foreign_keys(1)", memN.Add(1)))
+	if err != nil {
+		return nil, err
+	}
+	db.SetMaxOpenConns(1)
 	return db, nil
 }
 
@@ -84,4 +109,9 @@ func provider(db *sqlx.DB) (*goose.Provider, error) {
 		return nil, err
 	}
 	return goose.NewProvider(goose.DialectSQLite3, db.DB, fsys)
+}
+
+func isUnique(err error) bool {
+	var se *sqlite.Error
+	return errors.As(err, &se) && se.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE
 }

@@ -1,0 +1,18 @@
+{{ define "content" }}
+<main class="flex min-h-dvh items-center justify-center px-6">
+    <div class="flex w-full max-w-[456px] flex-col items-center gap-6">
+        <p class="text-title">sike</p>
+        <h1 class="text-display">Who are you?</h1>
+        {{- with .Users }}
+        <div class="flex w-full flex-wrap justify-center gap-4">
+            {{- range . }}
+            <form method="post" action="/who/{{ .ID }}" class="aspect-[4/3] basis-[calc(50%-8px)]">
+                <button type="submit" class="block size-full cursor-pointer text-left">{{ template "components/tile" (dict "Name" .Label "Color" .Color) }}</button>
+            </form>
+            {{- end }}
+        </div>
+        {{- end }}
+        {{ template "components/button" (dict "Label" "+ Add person" "Href" "/who/new") }}
+    </div>
+</main>
+{{ end }}

@@ -10,12 +10,14 @@ import (
 	"syscall"
 	"time"
 
+	"sike/domain/service"
 	"sike/view/http/handlers"
 	"sike/view/ui"
 )
 
 type Config struct {
-	Addr string
+	Addr  string
+	Users *service.Users
 }
 
 type Server struct {
@@ -34,7 +36,12 @@ func New(cfg Config) (*Server, error) {
 
 	mux := http.NewServeMux()
 	mux.Handle("GET /static/", noListing(http.StripPrefix("/static/", http.FileServerFS(ui.Static()))))
-	mux.HandleFunc("GET /{$}", s.home)
+	people := handlers.People{R: rd, Users: cfg.Users}
+	mux.Handle("GET /{$}", people.Require(http.HandlerFunc(s.home)))
+	mux.HandleFunc("GET /who", people.Who)
+	mux.HandleFunc("GET /who/new", people.New)
+	mux.HandleFunc("POST /who/new", people.Create)
+	mux.HandleFunc("POST /who/{id}", people.Pick)
 	mux.HandleFunc("GET /dev/components", handlers.Dev{R: rd}.Components)
 
 	s.http = &http.Server{
@@ -83,5 +90,5 @@ func noListing(next http.Handler) http.Handler {
 }
 
 func (s *Server) home(w http.ResponseWriter, r *http.Request) {
-	s.rd.Render(w, "home", nil)
+	s.rd.Render(w, "home", handlers.UserFrom(r.Context()))
 }

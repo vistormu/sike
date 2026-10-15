@@ -1,0 +1,23 @@
+{{ define "content" }}
+<main class="flex min-h-dvh items-center justify-center px-6 py-8">
+    <form method="post" action="/who/new" class="flex w-full max-w-[456px] flex-col items-center gap-6">
+        <p class="text-title">sike</p>
+        <h1 class="text-display">New person</h1>
+        <div class="flex w-full flex-col gap-6">
+            {{ template "components/field" (dict "Label" "Name" "Name" "name" "Value" .Name) }}
+            <fieldset class="flex flex-col gap-2">
+                <legend class="mb-2 text-label text-text-muted uppercase">Emoji</legend>
+                <div class="flex flex-wrap gap-1">
+                    {{- range .Emojis }}
+                    {{ template "components/mood_face" (dict "Name" "emoji" "Value" . "Emoji" . "On" (eq . $.Emoji)) }}
+                    {{- end }}
+                </div>
+            </fieldset>
+        </div>
+        <div class="flex gap-3">
+            {{ template "components/button" (dict "Label" "Cancel" "Href" "/who") }}
+            {{ template "components/button" (dict "Label" "Save" "Primary" true "Submit" true) }}
+        </div>
+    </form>
+</main>
+{{ end }}

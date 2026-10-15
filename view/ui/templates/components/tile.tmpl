@@ -1,4 +1,4 @@
-{{/* Name, Color. the grid sets the width. */}}
+{{/* Name, Color. fills its box: the grid sets the size. */}}
 {{ define "components/tile" -}}
-<div class="flex h-28 flex-col justify-end border-2 border-border p-4 text-title text-text" style="background-color: var(--task-{{ .Color }})">{{ .Name }}</div>
+<span class="flex size-full flex-col justify-end border-2 border-border p-4 text-title whitespace-pre-wrap text-text" style="background-color: var(--task-{{ .Color }})">{{ .Name }}</span>
 {{- end }}
