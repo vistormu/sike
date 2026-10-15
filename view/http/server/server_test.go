@@ -63,7 +63,7 @@ func testApp(t *testing.T) (http.Handler, services) {
 	}
 	st := store.New(db)
 	svc := services{Users: service.NewUsers(st), Areas: service.NewAreas(st), Tasks: service.NewTasks(st), Moods: service.NewMoods(st), Sent: &[]string{}}
-	s, err := New(Config{Users: svc.Users, Areas: svc.Areas, Tasks: svc.Tasks, Moods: svc.Moods, Notifier: service.NewNotifier(fakeNtfy{svc.Sent}), Loc: testLoc, Now: testNow})
+	s, err := New(Config{Users: svc.Users, Areas: svc.Areas, Tasks: svc.Tasks, Moods: svc.Moods, Notifier: service.NewNotifier(fakeNtfy{svc.Sent}, st, svc.Users, svc.Tasks, testLoc), Loc: testLoc, Now: testNow})
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}

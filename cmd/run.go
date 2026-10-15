@@ -34,18 +34,27 @@ SIKE_TZ the timezone times are in (default Europe/Madrid).`,
 				return err
 			}
 			st := store.New(db)
+			users, tasks := service.NewUsers(st), service.NewTasks(st)
+			notifier := service.NewNotifier(notifierPort(), st, users, tasks, loc)
 			srv, err := server.New(server.Config{
 				Addr:     getenv("SIKE_ADDR", ":8090"),
-				Users:    service.NewUsers(st),
+				Users:    users,
 				Areas:    service.NewAreas(st),
-				Tasks:    service.NewTasks(st),
+				Tasks:    tasks,
 				Moods:    service.NewMoods(st),
-				Notifier: service.NewNotifier(notifierPort()),
+				Notifier: notifier,
 				Loc:      loc,
 				Now:      time.Now,
 			})
 			if err != nil {
 				return err
+			}
+			// the minute ticker, in the same binary (technical-design.md)
+			if notifierPort() != nil {
+				log.Printf("notifications to %s", getenv("SIKE_NTFY_URL", ""))
+				go notifier.Run(cmd.Context(), time.Now)
+			} else {
+				log.Printf("notifications off: no SIKE_NTFY_URL")
 			}
 			return srv.Run(cmd.Context())
 		},

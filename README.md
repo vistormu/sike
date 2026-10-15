@@ -54,6 +54,7 @@ settings' "Switch person" forgets the chosen person and opens the picker.
 | `sike op mood set <user-id> <1-5 \| face> [--date YYYY-MM-DD]` | give the day its mood: `4` or `🙂` |
 | `sike op mood clear <user-id> [--date YYYY-MM-DD]` | take the day's mood away |
 | `sike op notify test <user-id>` | send a test message to the person's ntfy topic |
+| `sike op notify tick [--at "YYYY-MM-DD HH:MM"] [--dry-run]` | one tick of the notifier: what is due in the 10 minutes up to now (or `--at`) and not sent yet; `--dry-run` only prints |
 
 ## env
 
