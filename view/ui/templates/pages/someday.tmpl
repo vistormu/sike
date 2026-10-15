@@ -1,0 +1,21 @@
+{{ define "content" }}
+<div class="flex min-h-full flex-col">
+    {{ template "partials/header" "Someday" }}
+    {{- with .Groups }}
+    <div class="flex flex-col gap-2 px-4 pb-6 md:px-8 md:pt-2">
+        {{- range . }}
+        <section class="flex flex-col gap-2">
+            {{ template "components/group_header" (dict "Name" .Name "Color" .Color "Count" (len .Tasks)) }}
+            <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+                {{- range .Tasks }}
+                <div class="h-24">{{ template "components/tile" (dict "Name" .Name "Color" .Color) }}</div>
+                {{- end }}
+            </div>
+        </section>
+        {{- end }}
+    </div>
+    {{- else }}
+    <p class="flex flex-1 items-center justify-center text-title text-text-muted">No wishes yet</p>
+    {{- end }}
+</div>
+{{ end }}

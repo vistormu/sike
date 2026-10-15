@@ -42,11 +42,13 @@ func New(cfg Config) (*Server, error) {
 	mux.Handle("GET /{$}", http.RedirectHandler("/week", http.StatusSeeOther))
 	frame := handlers.Frame{Tasks: cfg.Tasks}
 	t := handlers.Tabs{R: rd, Frame: frame}
-	for _, name := range []string{"week", "upcoming", "someday", "settings"} {
+	for _, name := range []string{"week", "upcoming", "settings"} {
 		mux.Handle("GET /"+name, people.Require(t.Tab(name)))
 	}
 	pending := handlers.Pending{R: rd, Frame: frame, Tasks: cfg.Tasks, Areas: cfg.Areas}
 	mux.Handle("GET /pending", people.Require(http.HandlerFunc(pending.Show)))
+	someday := handlers.Someday{R: rd, Frame: frame, Tasks: cfg.Tasks, Areas: cfg.Areas}
+	mux.Handle("GET /someday", people.Require(http.HandlerFunc(someday.Show)))
 	mux.HandleFunc("GET /who", people.Who)
 	mux.HandleFunc("GET /who/new", people.New)
 	mux.HandleFunc("POST /who/new", people.Create)

@@ -10,7 +10,7 @@ type Tabs struct {
 }
 
 var titles = map[string]string{
-	"week": "Week", "upcoming": "Upcoming", "someday": "Someday", "settings": "Settings",
+	"week": "Week", "upcoming": "Upcoming", "settings": "Settings",
 }
 
 // Tab renders the tab named by the path; settings is no tab.
