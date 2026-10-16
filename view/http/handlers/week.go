@@ -31,7 +31,7 @@ type Week struct {
 type weekPage struct {
 	Sub              string // "Oct 12 – 18 · week 42"
 	Prev, Next, This string // the links ‹ › and Today
-	Eyebrow, Day     string // the phone's "Week · Oct 12 – 18" and "Thursday"
+	Day              string // the phone's title: the picked day, "Thursday"
 	Before, After    string // the phone: the days either side of the week
 	Hours            []hourLine
 	From, Span       int // the first hour, and how many the timeline shows
@@ -146,16 +146,15 @@ func (h Week) Page(w http.ResponseWriter, r *http.Request, opts ...Option) {
 	pct := func(t clock.Time) float64 { return float64(int(t)-from*60) / float64(span*60) * 100 }
 
 	page := weekPage{
-		Sub:     fmt.Sprintf("%s · week %d", weekRange(monday, end.AddDays(-1)), monday.ISOWeek()),
-		Prev:    "/week?date=" + monday.AddDays(-7).String(),
-		Next:    "/week?date=" + end.String(),
-		This:    "/week",
-		Eyebrow: "Week · " + weekRange(monday, end.AddDays(-1)),
-		Day:     day.Weekday().String(),
-		Before:  "/week?date=" + monday.AddDays(-1).String(),
-		After:   "/week?date=" + end.String(),
-		From:    from,
-		Span:    span,
+		Sub:    fmt.Sprintf("%s · week %d", weekRange(monday, end.AddDays(-1)), monday.ISOWeek()),
+		Prev:   "/week?date=" + monday.AddDays(-7).String(),
+		Next:   "/week?date=" + end.String(),
+		This:   "/week",
+		Day:    day.Weekday().String(),
+		Before: "/week?date=" + monday.AddDays(-1).String(),
+		After:  "/week?date=" + end.String(),
+		From:   from,
+		Span:   span,
 	}
 	for i, face := range model.Faces {
 		page.Mood = append(page.Mood, moodFace{Value: i + 1, Emoji: face, On: mood == i+1})

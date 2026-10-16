@@ -19,7 +19,7 @@
              scroller so it scrolls away with the header */}}
         <main class="relative min-h-0 flex-1 overflow-y-auto">
             {{- if not .Shell.Settings }}
-            <a href="/settings" class="absolute top-6 right-4 flex h-9 items-center text-title md:hidden [body:has([data-day-name])_&]:top-[42px]" hx-boost="true">{{ .Shell.User.Emoji }}</a>
+            <a href="/settings" class="absolute top-6 right-4 flex h-9 items-center text-title md:hidden" hx-boost="true">{{ .Shell.User.Emoji }}</a>
             {{- end }}
             {{ template "content" .Page }}
         </main>

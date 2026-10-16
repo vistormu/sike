@@ -253,12 +253,15 @@ func TestWeekPhone(t *testing.T) {
 			t.Errorf("%s: shown %v, want the head and column of day %s", tt.path, shown, tt.shown)
 		}
 		for _, want := range []string{
-			"Week · Oct 12 – 18", `data-day-name>` + tt.name + `</h1>`,
+			`<h1 class="text-display md:hidden" data-day-name>` + tt.name + `</h1>`,
 			`data-before="/week?date=2026-10-11" data-after="/week?date=2026-10-19"`,
 		} {
 			if !strings.Contains(page, want) {
 				t.Errorf("%s lacks %q", tt.path, want)
 			}
+		}
+		if strings.Contains(page, "Week · ") {
+			t.Errorf("%s: the phone still shows the week's range", tt.path)
 		}
 	}
 	// thursday picked: today keeps its ink border, no butter of its own

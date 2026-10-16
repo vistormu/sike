@@ -1,8 +1,10 @@
 {{/* upcoming: dated tasks by period, nearest first; what has gone by in the
-     collapsed "Past" (a <details>: no js). */}}
+     collapsed "Past" (a <details>: no js). nothing at all: no list, so the
+     empty state centers as pending's and someday's do. */}}
 {{ define "content" }}
 <div class="flex min-h-full flex-col">
     {{ template "partials/header" (dict "Title" "Upcoming" "New" "+ New task" "Href" "/upcoming/new") }}
+    {{- if or .Groups .Past }}
     <div class="flex flex-col gap-6 px-4 pt-4 pb-6 md:w-176 md:px-8 md:pt-6">
         {{- range .Groups }}
         <section class="flex flex-col">
@@ -21,6 +23,7 @@
         </details>
         {{- end }}
     </div>
+    {{- end }}
     {{- if not .Groups }}
     <p class="flex flex-1 items-center justify-center text-title text-text-muted">Nothing coming up</p>
     {{- end }}

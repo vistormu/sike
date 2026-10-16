@@ -7,7 +7,7 @@
      marked data-shown (app.js moves the mark; data-day is the day's index). */}}
 {{ define "content" }}
 <div class="flex h-full flex-col" data-week data-before="{{ .Before }}" data-after="{{ .After }}">
-    {{ template "partials/header" (dict "Title" "Week" "Sub" .Sub "Prev" .Prev "Next" .Next "This" .This "New" "+ New task" "Href" "/week/new" "Eyebrow" .Eyebrow "Day" .Day "Mood" .Mood) }}
+    {{ template "partials/header" (dict "Title" "Week" "Sub" .Sub "Prev" .Prev "Next" .Next "This" .This "New" "+ New task" "Href" "/week/new" "Day" .Day "Mood" .Mood) }}
     {{- /* the phone: the day picker and the picked day's chips, over the rule */}}
     <div class="border-b-2 border-border md:hidden">
         <div class="grid grid-cols-7 px-2">

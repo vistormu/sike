@@ -125,7 +125,7 @@ func TestUpcomingEmpty(t *testing.T) {
 	you, _ := svc.Users.Add(context.Background(), "You", "🦊")
 	in := &http.Cookie{Name: userCookieName, Value: "1"}
 	page := body(t, get(h, "/upcoming", in))
-	if !strings.Contains(page, "Nothing coming up") || strings.Contains(page, "Past ·") {
+	if !strings.Contains(page, "Nothing coming up") || strings.Contains(page, "Past ·") || strings.Contains(page, "md:w-176") {
 		t.Error("an empty upcoming should show only “Nothing coming up”")
 	}
 	// only the past: the line, and the past under it
