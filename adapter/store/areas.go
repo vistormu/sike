@@ -22,16 +22,33 @@ func (s *Store) ListAreas(ctx context.Context, userID int64) ([]model.Area, erro
 	return areas, nil
 }
 
-func (s *Store) RenameArea(ctx context.Context, userID int64, color, name string) error {
-	res, err := s.db.ExecContext(ctx, `UPDATE areas SET name = ? WHERE user_id = ? AND color = ?`, name, userID, color)
-	if isUnique(err) {
-		return fmt.Errorf("%w: %q", model.ErrTaken, name)
-	}
+// RenameAreas renames a person's areas (color → name), all or none. each
+// first takes a stand-in name (" sky": names are trimmed, no one types it), so
+// two may trade names past the unique index.
+func (s *Store) RenameAreas(ctx context.Context, userID int64, names map[string]string) error {
+	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return err
 	}
-	if n, _ := res.RowsAffected(); n == 0 {
-		return fmt.Errorf("area %s of user %d: %w", color, userID, model.ErrNotFound)
+	defer tx.Rollback()
+
+	for color := range names {
+		res, err := tx.ExecContext(ctx, `UPDATE areas SET name = ? WHERE user_id = ? AND color = ?`, " "+color, userID, color)
+		if err != nil {
+			return err
+		}
+		if n, _ := res.RowsAffected(); n == 0 {
+			return fmt.Errorf("area %s of user %d: %w", color, userID, model.ErrNotFound)
+		}
 	}
-	return nil
+	for color, name := range names {
+		_, err := tx.ExecContext(ctx, `UPDATE areas SET name = ? WHERE user_id = ? AND color = ?`, name, userID, color)
+		if isUnique(err) {
+			return fmt.Errorf("%w: %q", model.ErrTaken, name)
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }

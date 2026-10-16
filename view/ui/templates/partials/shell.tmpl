@@ -15,10 +15,12 @@
         </a>
     </nav>
     <div class="relative flex min-w-0 flex-1 flex-col">
-        {{- if not .Shell.Settings }}
-        <a href="/settings" class="absolute top-6 right-4 flex h-9 items-center text-title md:hidden [body:has([data-day-name])_&]:top-[42px]" hx-boost="true">{{ .Shell.User.Emoji }}</a>
-        {{- end }}
-        <main class="min-h-0 flex-1 overflow-y-auto">
+        {{- /* the phone's emoji sits in the header's corner, inside the
+             scroller so it scrolls away with the header */}}
+        <main class="relative min-h-0 flex-1 overflow-y-auto">
+            {{- if not .Shell.Settings }}
+            <a href="/settings" class="absolute top-6 right-4 flex h-9 items-center text-title md:hidden [body:has([data-day-name])_&]:top-[42px]" hx-boost="true">{{ .Shell.User.Emoji }}</a>
+            {{- end }}
             {{ template "content" .Page }}
         </main>
         <nav class="flex gap-1 border-t-2 border-border bg-bg p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:hidden" hx-boost="true">

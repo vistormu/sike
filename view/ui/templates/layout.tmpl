@@ -1,12 +1,15 @@
 {{ define "layout" -}}
 <!doctype html>
-<html lang="en">
+<html lang="en" class="touch-pan-x touch-pan-y">
 <head>
     <meta charset="utf-8">
     {{- /* installable (pwa): the manifest, the icon, the iphone's tags. cover:
          the page reaches the screen's edges; the tab bar, the + and the toast
-         keep clear of the home bar with env(safe-area-inset-bottom) */}}
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+         keep clear of the home bar with env(safe-area-inset-bottom). no zoom,
+         an app: maximum-scale keeps ios from zooming into a field it focuses,
+         and touch-pan on <html> stops the pinch ios allows despite
+         user-scalable */}}
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <title>sike</title>
     <meta name="theme-color" content="#F7F3EA">
     <link rel="manifest" href="/static/manifest.webmanifest">

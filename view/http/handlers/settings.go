@@ -57,7 +57,7 @@ func (h Settings) page(w http.ResponseWriter, r *http.Request, opts ...Option) {
 	h.R.Render(w, "settings", page, append([]Option{shell}, opts...)...)
 }
 
-// Save takes the whole form: the person, then each area whose name changed.
+// Save takes the whole form: the person, then the areas, renamed as one.
 // what is refused comes back as an error toast, with a 200 so htmx takes it.
 func (h Settings) Save(w http.ResponseWriter, r *http.Request) {
 	u := UserFrom(r.Context())
@@ -106,18 +106,11 @@ func (h Settings) save(r *http.Request, u model.User) error {
 	if _, err := h.Users.Edit(r.Context(), u); err != nil {
 		return err
 	}
-	areas, err := h.Areas.List(r.Context(), u.ID)
-	if err != nil {
-		return err
-	}
-	for _, a := range areas {
-		name, ok := r.Form["area-"+a.Color]
-		if !ok || name[0] == a.Name {
-			continue
-		}
-		if err := h.Areas.Rename(r.Context(), u.ID, a.Color, name[0]); err != nil {
-			return err
+	names := map[string]string{}
+	for _, color := range model.Colors {
+		if name, ok := r.Form["area-"+color]; ok {
+			names[color] = name[0]
 		}
 	}
-	return nil
+	return h.Areas.RenameAll(r.Context(), u.ID, names)
 }

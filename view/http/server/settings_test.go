@@ -84,6 +84,20 @@ func TestSettings(t *testing.T) {
 		t.Errorf("a refused change stored the name %q", u.Name)
 	}
 
+	// areas renamed top to bottom: the first briefly takes the second's name,
+	// refused; renaming the second then saves both
+	vic := map[string]string{"name": "Vic", "emoji": "🐸", "warn": "2880", "area-sky": "Job", "area-lavender": "Job"}
+	if page := body(t, postHX(h, "/settings", settingsForm(vic))); !strings.Contains(page, `role="alert"`) {
+		t.Error("two areas called Job: no error toast")
+	}
+	vic["area-sky"] = "Work"
+	if page := body(t, postHX(h, "/settings", settingsForm(vic))); strings.Contains(page, `role="alert"`) {
+		t.Error("the second area renamed too: still an error toast")
+	}
+	if areas, _ := svc.Areas.List(context.Background(), you.ID); areas[0].Name != "Job" || areas[1].Name != "Work" {
+		t.Errorf("areas %q, %q; want Job, Work", areas[0].Name, areas[1].Name)
+	}
+
 	// enter posts it plainly: back to settings
 	res = postAs(h, "/settings", settingsForm(map[string]string{"name": "Vic"}), in)
 	if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/settings" {

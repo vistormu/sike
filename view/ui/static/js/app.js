@@ -16,15 +16,16 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") document.querySelector("[data-task][data-selected]")?.removeAttribute("data-selected");
 });
 
-// an info toast goes after ~5 s; errors stay until the next one. the undo
-// after a delete is one (the + comes back with it, css), and the url forgets
-// ?deleted= so a reload or back shows no undo. settings swaps toasts in.
+// an info toast goes after ~3 s, the undo after a delete after ~5 s (the +
+// comes back with it, css); errors stay (decisions/0007). the undo's url
+// forgets ?deleted= so a reload or back shows no undo. settings swaps toasts in.
 function timeToast() {
   const info = document.querySelector('#toast [role="status"]:not([data-timed])');
   if (!info) return;
   info.setAttribute("data-timed", "");
-  if (info.hasAttribute("data-undo")) history.replaceState(null, "", location.pathname);
-  setTimeout(() => info.parentElement.remove(), 5000);
+  const undo = info.hasAttribute("data-undo");
+  if (undo) history.replaceState(null, "", location.pathname);
+  setTimeout(() => info.parentElement.remove(), undo ? 5000 : 3000);
 }
 timeToast();
 document.addEventListener("htmx:oobAfterSwap", timeToast);

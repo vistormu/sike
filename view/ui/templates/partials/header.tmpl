@@ -1,7 +1,8 @@
 {{/* a tab's header: Title (and Sub, muted beside it) over the 2px rule.
      Prev, Next, This: the ‹ › Today buttons (week). New (the "+" label) and
      Href open the task form: a button here on desktop, the FAB above the tab
-     bar on the phone, hidden while the undo toast shows; no New, no "+". the
+     bar on the phone, hidden while the undo toast or the task form shows; no
+     New, no "+". the
      phone's profile emoji is the shell's. Eyebrow and Day: the phone's week,
      "Week · Oct 12 – 18" over the picked day's name (app.js renames it), and
      no rule: the day picker comes first. Mood: today's faces, on desktop
@@ -43,6 +44,6 @@
     </div>
 </header>
 {{- if .New }}
-<span class="fixed right-4 bottom-[calc(86px+env(safe-area-inset-bottom))] z-10 md:hidden [body:has([data-undo])_&]:hidden">{{ template "components/button" (dict "Glyph" "+" "Href" .Href "Fab" true) }}</span>
+<span class="fixed right-4 bottom-[calc(86px+env(safe-area-inset-bottom))] z-10 md:hidden [body:has([data-undo],[data-task-form])_&]:hidden">{{ template "components/button" (dict "Glyph" "+" "Href" .Href "Fab" true) }}</span>
 {{- end }}
 {{- end }}

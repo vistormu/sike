@@ -46,13 +46,13 @@ func TestCreateUserIsAtomic(t *testing.T) {
 	}
 }
 
-func TestRenameArea(t *testing.T) {
+func TestRenameAreas(t *testing.T) {
 	ctx := context.Background()
 	s := New(testDB(t))
 	u, _ := s.CreateUser(ctx, model.User{Name: "You", Emoji: "🦊", Warn: model.DefaultWarn}, model.DefaultAreas)
 	other, _ := s.CreateUser(ctx, model.User{Name: "Partner", Emoji: "🐼", Warn: model.DefaultWarn}, model.DefaultAreas)
 
-	if err := s.RenameArea(ctx, u.ID, "sky", "Job"); err != nil {
+	if err := s.RenameAreas(ctx, u.ID, map[string]string{"sky": "Job"}); err != nil {
 		t.Fatal(err)
 	}
 	areas, _ := s.ListAreas(ctx, u.ID)
@@ -62,13 +62,19 @@ func TestRenameArea(t *testing.T) {
 	if theirs, _ := s.ListAreas(ctx, other.ID); theirs[1].Name != "Work" {
 		t.Errorf("renaming mine renamed theirs: %q", theirs[1].Name)
 	}
-	if err := s.RenameArea(ctx, u.ID, "mint", "job"); !errors.Is(err, model.ErrTaken) {
+	if err := s.RenameAreas(ctx, u.ID, map[string]string{"mint": "job", "lime": "Play"}); !errors.Is(err, model.ErrTaken) {
 		t.Errorf("a second area named job: err = %v, want ErrTaken", err)
 	}
-	if err := s.RenameArea(ctx, other.ID, "mint", "Job"); err != nil {
+	if areas, _ := s.ListAreas(ctx, u.ID); areas[4].Name != "Home" || areas[5].Name != "Social" {
+		t.Errorf("a refused rename stored %q, %q; want none of it", areas[4].Name, areas[5].Name)
+	}
+	if err := s.RenameAreas(ctx, u.ID, map[string]string{"lavender": "Job", "sky": "Self"}); err != nil {
+		t.Errorf("two areas trading names: %v", err)
+	}
+	if err := s.RenameAreas(ctx, other.ID, map[string]string{"mint": "Job"}); err != nil {
 		t.Errorf("another person may use the same name: %v", err)
 	}
-	if err := s.RenameArea(ctx, 99, "sky", "x"); !errors.Is(err, model.ErrNotFound) {
+	if err := s.RenameAreas(ctx, 99, map[string]string{"sky": "x"}); !errors.Is(err, model.ErrNotFound) {
 		t.Errorf("rename for nobody: err = %v, want ErrNotFound", err)
 	}
 }

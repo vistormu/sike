@@ -42,8 +42,8 @@ type dateFields struct {
 	AllDay, Notify       bool
 }
 
-// blankDates: nothing yet, notify at start on (as figma draws it).
-var blankDates = dateFields{Notify: true}
+// blankDates: nothing yet; notifications are off until asked for.
+var blankDates = dateFields{}
 
 func (h TaskForm) today() clock.Date { return clock.Today(h.Now(), h.Loc) }
 
@@ -133,8 +133,8 @@ func newRow(i string, days model.Days, start, end string, notifyStart, notifyEnd
 	return row
 }
 
-// blankRow is a new time: no days yet, notify at start on (as figma draws it).
-func blankRow(i string) placeRow { return newRow(i, 0, "", "", true, false) }
+// blankRow is a new time: no days yet, no notifications.
+func blankRow(i string) placeRow { return newRow(i, 0, "", "", false, false) }
 
 // storedRows shows a task's placements; a task with none gets a blank box.
 func storedRows(places []model.Placement) []placeRow {

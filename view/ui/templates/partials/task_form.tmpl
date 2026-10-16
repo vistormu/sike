@@ -1,7 +1,7 @@
 {{/* the task form over a tab: desktop, a 480px side panel on a scrim (click
      it to close); phone, the whole screen with ‹ and Save in its header. */}}
 {{ define "partials/task_form" -}}
-<div class="fixed inset-0 flex md:bg-text/25">
+<div class="fixed inset-0 flex md:bg-text/25" data-task-form>
     <a href="{{ .Close }}" class="hidden flex-1 md:block" aria-label="Close"></a>
     <form method="post" action="{{ .Action }}" class="group/form flex h-dvh w-full flex-col bg-bg md:w-120 md:border-l-2 md:border-border">
         <div class="flex items-center justify-between border-b-2 border-border px-4 pt-6 pb-4 md:hidden">
