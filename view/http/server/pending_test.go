@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	groupRe = regexp.MustCompile(`<span class="text-label text-text uppercase">([^<]+)</span>\s*<span class="font-mono text-mono text-text-muted">(\d+)</span>`)
+	groupRe = regexp.MustCompile(`<span class="text-label text-text uppercase">([^<]+)</span>\s*<span class="font-mono text-mono text-text(?:-muted)?">(\d+)</span>`)
 	rowRe   = regexp.MustCompile(`<span class="truncate text-body text-text">([^<]+)</span>`)
 )
 
@@ -53,6 +53,11 @@ func TestPendingGroupsByArea(t *testing.T) {
 	}
 	if strings.Contains(page, "Nothing pending") {
 		t.Error("the empty state shows next to tasks")
+	}
+	// each area a card, headed by a band in its color, the count in ink
+	if !strings.Contains(page, `<div class="flex items-center gap-2 border-b-2 border-border px-3 py-2" style="background-color: var(--task-coral)">`) ||
+		!strings.Contains(page, `<span class="font-mono text-mono text-text">2</span>`) {
+		t.Error("pending lacks the area's band with its count in ink")
 	}
 	// sidebar counts: pending 4, someday 1
 	for _, want := range []string{"Pending 4", "Someday 1"} {

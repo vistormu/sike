@@ -91,6 +91,11 @@
             {{ template "components/row" (dict "Name" "Call the bank" "Color" "mint") }}
             {{ template "components/row" (dict "Name" "Fix bike" "Color" "lavender" "Meta" "Due in 2 days" "Handle" true "Href" "#" "Selected" true) }}
         </div>
+        <section class="flex w-[358px] flex-col border-2 border-border bg-surface m-4">
+            {{ template "components/group_header" (dict "Name" "Admin" "Color" "coral" "Count" "2" "Band" true) }}
+            {{ template "components/row" (dict "Name" "Return package" "Color" "coral" "Handle" true "Card" true "Href" "#" "Selected" true) }}
+            {{ template "components/row" (dict "Name" "Call the bank" "Color" "coral" "Handle" true "Card" true) }}
+        </section>
     </section>
 
     <section class="flex flex-col gap-2">

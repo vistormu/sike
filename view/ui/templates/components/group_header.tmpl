@@ -1,8 +1,17 @@
-{{/* Name (the area), Color, Count. 20px tall, as the screens draw it. */}}
+{{/* Name (the area), Color, Count. 20px tall, as the screens draw it. Band:
+     the head of an area's card (pending): the area's color as its fill, a 2px
+     rule under it, the count in ink; no swatch. */}}
 {{ define "components/group_header" -}}
+{{ if .Band -}}
+<div class="flex items-center gap-2 border-b-2 border-border px-3 py-2" style="background-color: var(--task-{{ .Color }})">
+    <span class="text-label text-text uppercase">{{ .Name }}</span>
+    <span class="font-mono text-mono text-text">{{ .Count }}</span>
+</div>
+{{- else -}}
 <div class="flex h-5 items-center gap-2">
     {{- template "components/swatch" (dict "Color" .Color) }}
     <span class="text-label text-text uppercase">{{ .Name }}</span>
     <span class="font-mono text-mono text-text-muted">{{ .Count }}</span>
 </div>
+{{- end }}
 {{- end }}
