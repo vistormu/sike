@@ -1,9 +1,13 @@
-{{/* Message. Error: the danger tone (else info, ink). Undo: the url that
+{{/* Message. Error: the danger tone (else info, ink), and its × (20px
+     drawn, 44px to tap): it stays until closed (app.js). Undo: the url that
      restores a deleted task; shows the 44px Undo, and app.js hides the toast
-     after ~5 s. */}}
+     after ~5 s; a plain info after ~3 s. */}}
 {{ define "components/toast" -}}
 <div class="{{ if .Error }}bg-danger text-text{{ else }}bg-border text-surface{{ end }} flex items-center justify-between gap-3 border-2 border-border py-2 pr-2 pl-4" role="{{ if .Error }}alert{{ else }}status{{ end }}"{{ if .Undo }} data-undo{{ end }}>
     <span class="min-w-0 text-body">{{ .Message }}</span>
+    {{- if .Error }}
+    <button type="button" class="-m-3 flex size-11 shrink-0 cursor-pointer items-center justify-center text-title text-text" aria-label="Close" data-close>×</button>
+    {{- end }}
     {{- with .Undo }}
     <form method="post" action="{{ . }}" class="shrink-0"><button type="submit" class="flex h-11 cursor-pointer items-center bg-accent px-4 text-strong text-text">Undo</button></form>
     {{- end }}

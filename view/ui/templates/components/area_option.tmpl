@@ -1,8 +1,9 @@
-{{/* Name (the radio group), Value, Label (the area name), Color. Selected: checked. */}}
+{{/* Name (the radio group), Value, Label (the area name), Color. Selected:
+     checked. a name longer than its column ends in … */}}
 {{ define "components/area_option" -}}
-<label class="group relative inline-flex cursor-pointer items-center gap-2 text-body text-text has-focus-visible:[outline-style:auto]">
+<label class="group relative inline-flex min-w-0 cursor-pointer items-center gap-2 text-body text-text has-focus-visible:[outline-style:auto]">
     <input type="radio" name="{{ .Name }}" value="{{ .Value }}" class="sr-only"{{ if .Selected }} checked{{ end }}>
     {{- template "components/swatch" (dict "Color" .Color "Large" true) -}}
-    {{ .Label }}
+    <span class="truncate">{{ .Label }}</span>
 </label>
 {{- end }}

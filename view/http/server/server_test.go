@@ -88,6 +88,7 @@ func TestRoutes(t *testing.T) {
 		{"/static/manifest.webmanifest", 200, "application/manifest+json", `"display": "standalone"`},
 		{"/static/icons/apple-touch-icon.png", 200, "image/png", ""},
 		{"/static/icons/icon-512.png", 200, "image/png", ""},
+		{"/static/icons/logo.svg", 200, "image/svg+xml", "<svg"},
 		{"/who", 200, "text/html", `<link rel="manifest" href="/static/manifest.webmanifest">`},
 		{"/who", 200, "text/html", `<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">`},
 		{"/static/fonts/space-grotesk-latin-700-normal.woff2", 200, "font/woff2", ""},

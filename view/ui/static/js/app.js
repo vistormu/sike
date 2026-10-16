@@ -30,6 +30,11 @@ function timeToast() {
 timeToast();
 document.addEventListener("htmx:oobAfterSwap", timeToast);
 
+// an error's × closes it (decisions/0007).
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#toast [data-close]")) e.target.closest("#toast > div").remove();
+});
+
 // "+ Add time" in the task form: one more box in the weekly schedule, copied
 // from its <template> with the next free index.
 document.addEventListener("click", (e) => {

@@ -17,7 +17,7 @@
             {{ template "components/field" (dict "Label" "Name" "Name" "name" "Value" .Name "Autofocus" true) }}
             <fieldset class="flex flex-col">
                 <legend class="mb-2 text-label text-text-muted uppercase">Area</legend>
-                <div class="grid grid-cols-4 gap-x-3 gap-y-2 md:grid-cols-[repeat(3,99px)]">
+                <div class="grid grid-cols-2 gap-x-4 gap-y-3">
                     {{- range .Areas }}
                     {{ template "components/area_option" (dict "Name" "area" "Value" .Color "Label" .Name "Color" .Color "Selected" (eq .Color $.Color)) }}
                     {{- end }}

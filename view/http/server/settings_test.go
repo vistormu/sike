@@ -76,7 +76,7 @@ func TestSettings(t *testing.T) {
 		changes := map[string]string{"name": "Vic", "emoji": "🐸", "warn": "2880", "area-sky": "Job", tt.field: tt.value}
 		res := postHX(h, "/settings", settingsForm(changes))
 		page := html.UnescapeString(body(t, res))
-		if res.StatusCode != 200 || !strings.Contains(page, `role="alert"`) || !strings.Contains(page, tt.toast) {
+		if res.StatusCode != 200 || !strings.Contains(page, `role="alert"`) || !strings.Contains(page, tt.toast) || !strings.Contains(page, `aria-label="Close" data-close>×</button>`) {
 			t.Errorf("%s=%q: status %d, want 200 and the toast %q", tt.field, tt.value, res.StatusCode, tt.toast)
 		}
 	}
